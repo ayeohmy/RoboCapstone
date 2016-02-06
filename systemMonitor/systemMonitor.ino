@@ -4,16 +4,16 @@
 
 
 //#include <CANlib.h>
-#include <squirtlib.h>
+#include <SquirtCanLib.h>
 #include <LiquidCrystal.h>
 
 
 
 int spiPins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
-int statusMsgs[] = {CAN_MSG_HDR_UI_HEALTH,
-                    CAN_MSG_HDR_SERVING_HEALTH,
-                    CAN_MSG_HDR_PREP_HEALTH,
-                    CAN_MSG_HDR_DRIVE_HEALTH
+int statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
+                    SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH,
+                    SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH,
+                    SquirtCanLib::CAN_MSG_HDR_DRIVE_HEALTH
                    };
 //CAN IDs of the health messages
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2); //these are the lcd pins.
@@ -26,6 +26,7 @@ int button3State = 0;
 int sysRunning = 0;
 char maxRow = 30;
 char msg;
+SquirtCanLib scl;
 
 void setup() {
   // put your setup code here, to run once:'
@@ -34,7 +35,7 @@ void setup() {
   pinMode(button2Pin, INPUT);
   pinMode(button3Pin, INPUT);
 
-  canSetup(spiPins);
+  scl.canSetup(spiPins);
   while (sysRunning == 0) {
     lcd.setCursor(0, 0);
     lcd.print("press any button");
@@ -46,7 +47,7 @@ void setup() {
     if (button1State | (button2State | button3State)) {
       sysRunning = 1;
       msg = 1;
-      sendMsg(CAN_MSG_HDR_RUNNING, msg);
+      scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_RUNNING, msg);
     }
   }
 }
@@ -58,7 +59,7 @@ void loop() {
 
   if (stat == 0) {
     //then you're running normally or normally done
-    char currentrow = getMsg(CAN_MSG_HDR_AT_ROW);
+    char currentrow = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
     if (currentrow < maxRow) {
       //run like normal!
 
@@ -78,8 +79,8 @@ void loop() {
         if (button1State | (button2State | button3State)) {
           sysRunning = 0;
           msg = 0;
-          sendMsg(CAN_MSG_HDR_RUNNING, msg);
-          sendMsg(CAN_MSG_HDR_READY_TO_MOVE, msg);
+          scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_RUNNING, msg);
+          scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE, msg);
         }
       }
     }
@@ -88,8 +89,8 @@ void loop() {
     //something is wrong
     sysRunning = 0;
     msg = 0;
-    sendMsg(CAN_MSG_HDR_RUNNING, msg);
-    sendMsg(CAN_MSG_HDR_READY_TO_MOVE, msg);
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_RUNNING, msg);
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE, msg);
   }
 }
 
@@ -98,17 +99,17 @@ int checkStatus() {
   //check all yr mailboxes for disasters
   int stat = 0;
   for (int i = 0; i < 4; i++) {
-    char currentMsg = getMsg(statusMsgs[i]);
+    char currentMsg = scl.getMsg(statusMsgs[i]);
     if (currentMsg != 0) {
       //something is wrong. cry and shut everything off
       switch (statusMsgs[i]) {
-        case (CAN_MSG_HDR_UI_HEALTH):
+        case (SquirtCanLib::CAN_MSG_HDR_UI_HEALTH):
           lcd.setCursor(0, 0);
           lcd.print("error: UI");
-        case CAN_MSG_HDR_SERVING_HEALTH:
+        case SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH:
           lcd.setCursor(0, 0);
           lcd.print("error: DSERV");
-        case CAN_MSG_HDR_PREP_HEALTH:
+        case SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH:
           lcd.setCursor(0, 0);
           lcd.print("error: DPREP");
           lcd.setCursor(0, 1);
@@ -117,7 +118,7 @@ int checkStatus() {
           } else {
             lcd.print("       NODRINKS");
           }
-        case CAN_MSG_HDR_DRIVE_HEALTH:
+        case SquirtCanLib::CAN_MSG_HDR_DRIVE_HEALTH:
           lcd.setCursor(0, 0);
           lcd.print("error: UI");
           lcd.setCursor(0, 1);
