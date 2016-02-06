@@ -3,15 +3,13 @@
 //contact: Gillian Rosen, gtr@andrew.cmu.edu
 
 
-//TODO: #define a bunch of stuff in a .h file and import the .h file
-//      things to define: error codes, CAN msg headers
 //#include <CANlib.h>
 #include <squirtlib.h>
 #include <LiquidCrystal.h>
 
 
 
-int spipins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
+int spiPins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
 int statusMsgs[] = {CAN_MSG_HDR_UI_HEALTH,
                     CAN_MSG_HDR_SERVING_HEALTH,
                     CAN_MSG_HDR_PREP_HEALTH,
@@ -19,34 +17,34 @@ int statusMsgs[] = {CAN_MSG_HDR_UI_HEALTH,
                    };
 //CAN IDs of the health messages
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2); //these are the lcd pins.
-int button1pin = 6;
-int button2pin = 7;
-int button3pin = 8;
-int button1state = 0;
-int button2state = 0;
-int button3state = 0;
-int sysrunning = 0;
-char maxrow = 30;
+int button1Pin = 6;
+int button2Pin = 7;
+int button3Pin = 8;
+int button1State = 0;
+int button2State = 0;
+int button3State = 0;
+int sysRunning = 0;
+char maxRow = 30;
 char msg;
 
 void setup() {
   // put your setup code here, to run once:'
   lcd.begin(16, 2); // it's a 16x2 lcd
-  pinMode(button1pin, INPUT);
-  pinMode(button2pin, INPUT);
-  pinMode(button3pin, INPUT);
+  pinMode(button1Pin, INPUT);
+  pinMode(button2Pin, INPUT);
+  pinMode(button3Pin, INPUT);
 
-  canSetup(spipins);
-  while (sysrunning == 0) {
+  canSetup(spiPins);
+  while (sysRunning == 0) {
     lcd.setCursor(0, 0);
     lcd.print("press any button");
     lcd.setCursor(0, 1);
     lcd.print("to start service");
-    button1state = digitalRead(button1pin);
-    button2state = digitalRead(button2pin);
-    button3state = digitalRead(button3pin);
-    if (button1state | (button2state | button3state)) {
-      sysrunning = 1;
+    button1State = digitalRead(button1Pin);
+    button2State = digitalRead(button2Pin);
+    button3State = digitalRead(button3Pin);
+    if (button1State | (button2State | button3State)) {
+      sysRunning = 1;
       msg = 1;
       sendMsg(CAN_MSG_HDR_RUNNING, msg);
     }
@@ -61,7 +59,7 @@ void loop() {
   if (stat == 0) {
     //then you're running normally or normally done
     char currentrow = getMsg(CAN_MSG_HDR_AT_ROW);
-    if (currentrow < maxrow) {
+    if (currentrow < maxRow) {
       //run like normal!
 
       //nice drink running code.... 
@@ -69,16 +67,16 @@ void loop() {
       
     } else {
       //go into shutdown mode
-      while (sysrunning == 1) {
+      while (sysRunning == 1) {
         lcd.setCursor(0, 0);
         lcd.print("press any button");
         lcd.setCursor(0, 1);
         lcd.print("to end service ");
-        button1state = digitalRead(button1pin);
-        button2state = digitalRead(button2pin);
-        button3state = digitalRead(button3pin);
-        if (button1state | (button2state | button3state)) {
-          sysrunning = 0;
+        button1State = digitalRead(button1Pin);
+        button2State = digitalRead(button2Pin);
+        button3State = digitalRead(button3Pin);
+        if (button1State | (button2State | button3State)) {
+          sysRunning = 0;
           msg = 0;
           sendMsg(CAN_MSG_HDR_RUNNING, msg);
           sendMsg(CAN_MSG_HDR_READY_TO_MOVE, msg);
@@ -88,33 +86,11 @@ void loop() {
 
   } else {
     //something is wrong
-    sysrunning = 0;
+    sysRunning = 0;
     msg = 0;
     sendMsg(CAN_MSG_HDR_RUNNING, msg);
     sendMsg(CAN_MSG_HDR_READY_TO_MOVE, msg);
   }
-}
-
-void canSetup(int spipins[]) {
-  //dummy function for CAN setup
-  Serial.print("doing CAN network setup with pins ");
-  Serial.print(spipins[0]);
-  Serial.print(", ");
-  Serial.print(spipins[1]);
-  Serial.print(", ");
-  Serial.print(spipins[2]);
-  Serial.print(", ");
-  Serial.println(spipins[3]);
-
-}
-int sendMsg(int msgHdr, char payload) {
-  //dummy function for CAN library sendMsg
-  return 0;
-
-}
-char getMsg(int msgHdr) {
-  //dummy function for CAN library getMsg
-  return '0';
 }
 
 int checkStatus() {
