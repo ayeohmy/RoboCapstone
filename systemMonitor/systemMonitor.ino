@@ -10,7 +10,7 @@
 
 
 int spiPins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
-int statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
+INT32U statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
                     SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH,
                     SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH,
                     SquirtCanLib::CAN_MSG_HDR_DRIVE_HEALTH
@@ -24,6 +24,8 @@ int button1State = 0;
 int button2State = 0;
 int button3State = 0;
 int sysRunning = 0;
+int slavePin = 5;
+int interruptPin = 8;
 char maxRow = 30;
 char msg;
 SquirtCanLib scl;
@@ -34,8 +36,10 @@ void setup() {
   pinMode(button1Pin, INPUT);
   pinMode(button2Pin, INPUT);
   pinMode(button3Pin, INPUT);
-
-  scl.canSetup(spiPins);
+  
+  scl.canSetup(slavePin);
+  pinMode(interruptPin, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
   while (sysRunning == 0) {
     lcd.setCursor(0, 0);
     lcd.print("press any button");
@@ -129,6 +133,10 @@ int checkStatus() {
     }
   }
   return stat;
+}
+
+void receivedMsgWrapper() {
+  scl.receivedMsg();
 }
 
 

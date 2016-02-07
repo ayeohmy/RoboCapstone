@@ -15,18 +15,107 @@
 #include "SquirtCanLib.h"
 #include <mcp_can.h>
 
-void SquirtCanLib::canSetup(int spiPins[]) {
-  //dummy function for CAN setup
-	//does nothing...
+#define CAN_BAUD CAN_250KBPS
+
+MCP_CAN *can; //Pointer to the can object
+
+void SquirtCanLib::canSetup(INT8U slaveSelectPin) {
+	*can = MCP_CAN(slaveSelectPin);
+	can->begin(CAN_BAUD);
 }
 
-int SquirtCanLib::sendMsg(int msgHdr, char payload) {
-  //dummy function for CAN library sendMsg
-  return 0;
-
+INT8U SquirtCanLib::sendMsg(INT32U msgHdr, INT8U payload) {
+	return can->sendMsgBuf(msgHdr, 0, 1, &payload);
 }
 
-unsigned char SquirtCanLib::getMsg(int msgHdr) {
-  //dummy function for CAN library getMsg
-  return '0';
+INT8U SquirtCanLib::getMsg(INT32U msgHdr) {
+	switch(msgHdr) {
+		case CAN_MSG_HDR_DRINK_ORDER:
+			return mailboxDrinkOrder;
+			break;
+		case CAN_MSG_HDR_READY_TO_MOVE:
+			return mailboxReadyToMove;
+			break;
+		case CAN_MSG_HDR_RUNNING:
+			return mailboxRunning;
+			break;
+		case CAN_MSG_HDR_UI_HEALTH:
+			return mailboxUiHealth;
+			break;
+		case CAN_MSG_HDR_SERVING_STATUS:
+			return mailboxServingStatus;
+			break;
+		case CAN_MSG_HDR_SERVING_HEALTH:
+			return mailboxServingHealth;
+			break;
+		case CAN_MSG_HDR_STOCK_STATUS:
+			return mailboxStockStatus;
+			break;
+		case CAN_MSG_HDR_PREP_STATUS:
+			return mailboxPrepStatus;
+			break;
+		case CAN_MSG_HDR_PREP_HEALTH:
+			return mailboxPrepHealth;
+			break;
+		case CAN_MSG_HDR_MOVING:
+			return mailboxMoving;
+			break;
+		case CAN_MSG_HDR_AT_ROW:
+			return mailboxAtRow;
+			break;
+		case CAN_MSG_HDR_DRIVE_HEALTH:
+			return mailboxDriveHealth;
+			break;
+		default:
+			return 0x00;
+			break;
+	}
 }
+
+void SquirtCanLib::receivedMsg() {
+	INT8U payload;
+	INT8U len = 1;
+	can->readMsgBuf(&len, &payload); // Read data: len = data length, buf = data byte(s)
+	INT32U msgHdr = can->getCanId();
+	switch(msgHdr) {
+		case CAN_MSG_HDR_DRINK_ORDER:
+			mailboxDrinkOrder = payload;
+			break;
+		case CAN_MSG_HDR_READY_TO_MOVE:
+			mailboxReadyToMove = payload;
+			break;
+		case CAN_MSG_HDR_RUNNING:
+			mailboxRunning = payload;
+			break;
+		case CAN_MSG_HDR_UI_HEALTH:
+			mailboxUiHealth = payload;
+			break;
+		case CAN_MSG_HDR_SERVING_STATUS:
+			mailboxServingStatus = payload;
+			break;
+		case CAN_MSG_HDR_SERVING_HEALTH:
+			mailboxServingHealth = payload;
+			break;
+		case CAN_MSG_HDR_STOCK_STATUS:
+			mailboxStockStatus = payload;
+			break;
+		case CAN_MSG_HDR_PREP_STATUS:
+			mailboxPrepStatus = payload;
+			break;
+		case CAN_MSG_HDR_PREP_HEALTH:
+			mailboxPrepHealth = payload;
+			break;
+		case CAN_MSG_HDR_MOVING:
+			mailboxMoving = payload;
+			break;
+		case CAN_MSG_HDR_AT_ROW:
+			mailboxAtRow = payload;
+			break;
+		case CAN_MSG_HDR_DRIVE_HEALTH:
+			mailboxDriveHealth = payload;
+			break;
+		default:
+			break;
+	}
+}
+ 
