@@ -7,9 +7,6 @@
 #include <SquirtCanLib.h>
 #include <LiquidCrystal.h>
 
-
-
-int spiPins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
 INT32U statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
                     SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH,
                     SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH,
@@ -28,7 +25,7 @@ int slavePin = 5;
 int interruptPin = 8;
 char maxRow = 30;
 char msg;
-SquirtCanLib scl;
+SquirtCanLib scl; 
 
 void setup() {
   // put your setup code here, to run once:'
@@ -37,8 +34,8 @@ void setup() {
   pinMode(button2Pin, INPUT);
   pinMode(button3Pin, INPUT);
   
-  scl.canSetup(slavePin);
-  pinMode(interruptPin, OUTPUT);
+  scl.canSetup(slavePin); //pass in slave select pin 
+  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
   attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
   while (sysRunning == 0) {
     lcd.setCursor(0, 0);
@@ -136,6 +133,9 @@ int checkStatus() {
 }
 
 void receivedMsgWrapper() {
+  //put one of these in -every- sketch for an arduino with a CAN chip. 
+  //we have to do it this wat because there are some issues with calling
+  //a function of an object that may or may not exist. 
   scl.receivedMsg();
 }
 

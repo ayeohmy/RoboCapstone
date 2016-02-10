@@ -8,11 +8,10 @@
 //actuators actually take.
 
 //#include <CANlib.h>
-#include <squirtlib.h>
-#include <LiquidCrystal.h>
+#include <SquirtCanLib.h>
 
-
-int spiPins[] = {11, 12, 13, 10}; //[MOSI, MISO, SCK, SS]
+int slavePin = 5;
+int interruptPin = 8;
 int stockPins[] = {7, 8, 9, 6}; //last one is for cups
 int valvePins[] = {3, 4, 5};
 int armMotorPin = 2;
@@ -25,6 +24,9 @@ bool prepStatus = 0;
 char prevDrinkOrder = 0;
 bool stockStatus[] = {1, 1, 1, 1};
 
+SquirtCanLib scl; 
+
+
 void setup() {
   // put your setup code here, to run once:
   for (int i = 0; i < 3; i++) {
@@ -34,17 +36,19 @@ void setup() {
   pinMode(armMotorPin, OUTPUT);
   pinMode(leadScrewPin, OUTPUT);
 
-  canSetup(spiPins);
+  scl.canSetup(slavePin); //pass in slave select pin 
+  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
   msg = 0;
-  sendMsg(CAN_MSG_HDR_PREP_STATUS, msg);
-  sendMsg(CAN_MSG_HDR_PREP_HEALTH, msg);
-  sendMsg(CAN_MSG_HDR_STOCK_STATUS, char(0xFF));
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, char(0xFF));
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   //check if it's time to make a drink
-  char drinkOrder = getMsg(CAN_MSG_HDR_DRINK_ORDER);
+  char drinkOrder = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER);
   if (drinkOrder != 0xFF & prevDrinkOrder == 0xFF) {
     prepStatus = 1;
   } else {
@@ -56,7 +60,7 @@ void loop() {
     //prepping:
     //JUST! DO IT!
     msg = 1;
-    sendMsg(CAN_MSG_HDR_PREP_STATUS, msg);
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
     getCup();
 
     //parse order
@@ -79,7 +83,7 @@ void loop() {
     //ok done!
     prepStatus = 0;
     msg = 0;
-    sendMsg(CAN_MSG_HDR_PREP_STATUS, msg);
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
 
   } else {
     //waiting:
@@ -89,19 +93,19 @@ void loop() {
       bool someLevel = bool(level);
       stockStatus[i] = someLevel;
       msg = packStock(stockStatus);
-      sendMsg(CAN_MSG_HDR_STOCK_STATUS, msg);
+      scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, msg);
 
       if ((stockStatus[0] == false && stockStatus [1] == false)
           && stockStatus[2] == false) {
         //you're out of drinks! :(
         msg = 3;
-        sendMsg(CAN_MSG_HDR_PREP_HEALTH, msg);
+        scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
       }
 
       if (stockStatus[3] == false ) {
       //you're out of cups! :(
         msg = 2;
-        sendMsg(CAN_MSG_HDR_PREP_HEALTH, msg);
+        scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
       }
     } //end for-loop, checking stock
 
@@ -155,5 +159,11 @@ char packStock(bool stock[]) {
   return ret;
 }
 
+void receivedMsgWrapper() {
+  //put one of these in -every- sketch for an arduino with a CAN chip. 
+  //we have to do it this wat because there are some issues with calling
+  //a function of an object that may or may not exist. 
+  scl.receivedMsg();
+}
 
 
