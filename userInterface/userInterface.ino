@@ -1,5 +1,5 @@
-//userInterface: code for running the UI, including actual UI duties as well as
-//system monitoring.
+//userInterface.ino: code for running the UI, including actual UI duties 
+//as well as system monitoring.
 //contact: Gillian Rosen, gtr@andrew.cmu.edu
 //TODO: figure out if we serve or move after being placed in the aisle
 //      decide whether we want the second "take drink" message; if so, code it
@@ -304,7 +304,7 @@ void robotStartupShutdown(int mode) {
 
 void receivedMsgWrapper() {
   //put one of these in -every- sketch for an arduino with a CAN chip.
-  //we have to do it this wat because there are some issues with calling
+  //we have to do it this way because there are some issues with calling
   //a function of an object that may or may not exist.
   scl.receivedMsg();
 }

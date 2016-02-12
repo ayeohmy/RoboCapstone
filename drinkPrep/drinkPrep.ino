@@ -1,14 +1,13 @@
 //drinkprep.ino: define the drink prep.
 //contact: Gillian Rosen, gtr@andrew.cmu.edu
 
-//TODO: think about indexing (see parseOrder) and
-//figure out how you want the messages to look.
-//WRITE IT THE HECK DOWN.
+//TODO: add code for controlling the compressor
 //finish getCup() when you know what the linear 
 //actuators actually take.
 
-//#include <CANlib.h>
 #include <SquirtCanLib.h>
+#define WAITING 0
+#define PREPARING 1
 
 int slavePin = 5;
 int interruptPin = 8;
@@ -19,7 +18,7 @@ int leadScrewPin = 1;
 int shutoffPin = 0;
 
 char msg;
-bool prepStatus = 0;
+bool state = WAITING;
 char prevDrinkOrder = 0;
 bool stockStatus[] = {1, 1, 1, 1};
 
@@ -49,12 +48,11 @@ void loop() {
   //check if it's time to make a drink
   char drinkOrder = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER);
   if (drinkOrder != 0xFF & prevDrinkOrder == 0xFF) {
-    prepStatus = 1;
-  } else {
-    //prepStatus = 0;
-  }
+    //if we just got an order, time to start preparing a drink!
+    state = PREPARING;
+  } 
   prevDrinkOrder = drinkOrder;
-  if (prepStatus) {
+  if (state == PREPARING) {
 
     //prepping:
     //JUST! DO IT!
@@ -79,8 +77,8 @@ void loop() {
       }
       delay(10);
     }
-    //ok done!
-    prepStatus = 0;
+    //ok done! go back to waiting
+    state = WAITING;
     msg = 0;
     scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
 
@@ -160,7 +158,7 @@ char packStock(bool stock[]) {
 
 void receivedMsgWrapper() {
   //put one of these in -every- sketch for an arduino with a CAN chip. 
-  //we have to do it this wat because there are some issues with calling
+  //we have to do it this way because there are some issues with calling
   //a function of an object that may or may not exist. 
   scl.receivedMsg();
 }
