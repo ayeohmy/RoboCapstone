@@ -17,7 +17,6 @@ int valvePins[] = {3, 4, 5};
 int armMotorPin = 2;
 int leadScrewPin = 1;
 int shutoffPin = 0;
-//omg we're using every single pin...
 
 char msg;
 bool prepStatus = 0;
