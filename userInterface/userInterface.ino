@@ -1,5 +1,5 @@
-//systemMonitor: define the system monitor.
-//later, turn this into things to be called by the UI loop...
+//userInterface: code for running the UI, including actual UI duties as well as
+//system monitoring.
 //contact: Gillian Rosen, gtr@andrew.cmu.edu
 //TODO: figure out if we serve or move after being placed in the aisle
 //      decide whether we want the second "take drink" message; if so, code it
@@ -12,7 +12,11 @@
 #define SHUTDOWN 0
 #define LEFT 0
 #define RIGHT 1
-
+#define REQUESTING 0
+#define PREPARING 1
+#define SERVING 2
+#define DRIVING 3
+#define DONE 4
 INT32U statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
                        SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH,
                        SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH,
@@ -28,6 +32,7 @@ int led1Pins[] = {13, 14, 15}; //R,G,B
 int led2Pins[] = {16, 17, 18}; //R,G,B
 int led3Pins[] = {19, 20, 21}; //R,G,B
 
+//for setting LED colors
 const int GREEN[] = {0, 255, 0};
 const int RED[] = {255, 0, 0};
 const int WHITE[] = {255, 255, 255};
@@ -46,6 +51,8 @@ char maxRow = 30;
 bool side;
 int seat;
 char drinkOrder = 0xFF;
+char currentRow;
+int state = REQUESTING;
 
 SquirtCanLib scl;
 
@@ -72,63 +79,131 @@ void loop() {
   Serial.println(stat);
 
   if (stat == 0) {
-    //then you're running normally or normally done
-    char currentrow = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
-    if (currentrow < maxRow) {
-      //run like normal!
 
-      /*****waiting while drivetrain moves*****/
+    switch (state) {
+      case DRIVING:
+        /*****waiting while drivetrain moves*****/
+        msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
+        if (msg != currentRow) {
+          //then the drivetrain says we're at the next row, so time to serve again!
+          currentRow = msg;
+
+          msg = 0;
+          scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE, msg);
+          state = REQUESTING;
+        }
+        break;
+        
+      case PREPARING:
+        /*****waiting for an order to be prepared*****/
+        panelDisplay("preparing drink ", "please wait...", WHITE, WHITE, WHITE);
+        //check if we're done preparing
+        msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_SERVING_STATUS);
+        if (msg) {
+          state = SERVING;
+        }
+        break;
+        
+      case SERVING:
+        /*****waiting for a user to take their drink*****/
+        //  msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_SERVING_STATUS);
+        //  if (msg) {
+        panelDisplay("drink is ready", "please take cup", GREEN, GREEN, GREEN);
+        // }
+        msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_SERVING_STATUS);
+        if (!msg) {
+          //if serving is done, then increment stuff and decide where to go
+          drinkOrder = 0xFF;
+          scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER, drinkOrder);
+          seat++;
+          if ( seat % 3 == 0) {
+            side = !side;
+          }
+          if (seat % 3 == 0 && side == RIGHT) {
+            //then you need to start a new row! go forth!
+
+            currentRow = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
+
+            if (currentRow > maxRow) {
+              //then you gotta stop
+              state = DONE;
+            } else {
+              //go forward!
+              msg = 1;
+              scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE, msg);
+              state = DRIVING;
+            }
+          }
+        }
+        break;
+        
+      case REQUESTING: {
+          /*****waiting for a drink order to be placed*****/
+          //check stock status
+          bool stocks[] = {0, 0, 0};
+          msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS);
+          //parse stock message
+          if (msg & 0x40) stocks[0] = 1;  // 0100 0000
+          if (msg & 0x20) stocks[1] = 1;  // 0010 0000
+          if (msg & 0x10) stocks[2] = 1;  // 0001 0000
+
+          //construct the display message
+          String line1 = "    "; //padding spaces
+          String line2 = "";
+          int led1[] = {0, 0, 0};
+          int led2[] = {0, 0, 0};
+          int led3[] = {0, 0, 0};
+          if (stocks[1]) {
+            line1 += drinks[1];
+            led1[1] = 255;
+          }
+          if (stocks[0]) {
+            line2 += drinks[0];
+            led2[1] = 255;
+          } else {
+            line2 += "       ";
+          }
+          line2 += "|";
+          if (stocks[2]) {
+            line2 += drinks[2];
+            led3[1] = 255;
+          }
+          panelDisplay(line1, line2, led1, led2, led3);
 
 
+          //see if an order's getting placed via button
+          for (int i = 0; i < 3; i++) {
+            buttonStates[i] = digitalRead(buttonPins[i]);
+          }
+          if (buttonStates[0]) {
+            drinkOrder = 0;
 
-      /*****waiting for a drink order to be placed*****/
-      //check stock status
-      bool stocks[] = {0, 0, 0};
-      msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS);
-      //parse stock message
-      if (msg & 0x40) stocks[0] = 1;  // 0100 0000
-      if (msg & 0x20) stocks[1] = 1;  // 0010 0000
-      if (msg & 0x10) stocks[2] = 1;  // 0001 0000
-
-      //construct the display message
-      String line1 = "    "; //padding spaces
-      String line2 = "";
-      int led1[] = {0, 0, 0};
-      int led2[] = {0, 0, 0};
-      int led3[] = {0, 0, 0};
-      if (stocks[1]) {
-        line1 += drinks[1];
-        led1[1] = 255;
-      }
-      if (stocks[0]) {
-        line2 += drinks[0];
-        led2[1] = 255;
-      } else {
-        line2 += "       ";
-      }
-      line2 += "|";
-      if (stocks[2]) {
-        line2 += drinks[2];
-        led3[1] = 255;
-      }
-      panelDisplay(line1, line2, led1, led2, led3);
-
-
-      /*****waiting for an order to be prepared*****/
-    msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS); 
-    if (msg){
-      panelDisplay("preparing drink ","please wait...",WHITE,WHITE,WHITE); 
-    }
-      /*****waiting for a user to take their drink*****/
- msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_SERVING_STATUS); 
-    if (msg){
-      panelDisplay("drink is ready", "please take cup",GREEN, GREEN, GREEN); 
-    }
-
-    } else {
-      //you've passed the last seat so time to shut down
-      robotStartupShutdown(SHUTDOWN);
-    }
+          }
+          if (buttonStates[1]) {
+            drinkOrder = 1;
+          }
+          if (buttonStates[2]) {
+            drinkOrder = 2;
+          }
+          if (buttonStates[0] || (buttonStates[1] || buttonStates[2])) {
+            if (side == LEFT) {
+              drinkOrder = drinkOrder & 0x80; //add on the side bit as necessary
+            }
+            scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER, drinkOrder);
+            state = PREPARING;
+          }
+          break;
+        }
+        
+      case DONE:
+        {
+          //you've passed the last seat so time to shut down
+          robotStartupShutdown(SHUTDOWN);
+        }
+        
+      default:
+        break;
+    }//end switch statement over states
 
   } else {
     //something is wrong
@@ -174,17 +249,12 @@ int checkStatus() {
 }
 
 
-
-
-
 /*
 
    Display Formatting Helpers
 
 
 */
-
-
 
 void panelDisplay(String line1, String line2, const int led1[], const int led2[], const int led3[]) {
   //displays the given two lines and three LED colors on the UI panel
