@@ -89,7 +89,7 @@ class SquirtCanLib
 		INT8U getMsg(INT32U msgHdr);
 		
 		/*
-		 * Function called on interrupt when the general interrupt pin rises,
+		 * Function called on interrupt when the general interrupt pin is low,
 		 * indicating that the CAN chip has received a new message. This 
 		 * function will read in the message over SPI and store it in the 
 		 * appropriate mailbox.
@@ -104,18 +104,18 @@ class SquirtCanLib
 		/*
 		 * Variables representing the local can mailboxes
 		 */
-		INT8U mailboxDrinkOrder = 0; 
-		INT8U mailboxReadyToMove = 0;
-		INT8U mailboxRunning = 0;
-		INT8U mailboxUiHealth = 0;
-		INT8U mailboxServingStatus = 0;
-		INT8U mailboxServingHealth = 0;
-		INT8U mailboxStockStatus = 0; 
-		INT8U mailboxPrepStatus = 0;
-		INT8U mailboxPrepHealth = 0;
-		INT8U mailboxMoving = 0;
-		INT8U mailboxAtRow = 0;
-		INT8U mailboxDriveHealth = 0;
+		volatile INT8U mailboxDrinkOrder = 0; 
+		volatile INT8U mailboxReadyToMove = 0;
+		volatile INT8U mailboxRunning = 0;
+		volatile INT8U mailboxUiHealth = 0;
+		volatile INT8U mailboxServingStatus = 0;
+		volatile INT8U mailboxServingHealth = 0;
+		volatile INT8U mailboxStockStatus = 0; 
+		volatile INT8U mailboxPrepStatus = 0;
+		volatile INT8U mailboxPrepHealth = 0;
+		volatile INT8U mailboxMoving = 0;
+		volatile INT8U mailboxAtRow = 0;
+		volatile INT8U mailboxDriveHealth = 0;
 };
 
 #endif
