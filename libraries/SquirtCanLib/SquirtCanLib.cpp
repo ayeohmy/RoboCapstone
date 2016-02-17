@@ -14,105 +14,110 @@
 #include "Arduino.h"
 #include "SquirtCanLib.h"
 #include <mcp_can.h>
+#include <avr/interrupt.h>
 
-#define CAN_BAUD CAN_250KBPS
+#define CAN_BAUD CAN_500KBPS
 
-MCP_CAN *can; //Pointer to the can object
+MCP_CAN can(10); //Pointer to the can object
 
 void SquirtCanLib::canSetup(INT8U slaveSelectPin) {
-	*can = MCP_CAN(slaveSelectPin);
-	can->begin(CAN_BAUD);
+	//*can = MCP_CAN(slaveSelectPin);
+	can.begin(CAN_BAUD);
 }
 
 INT8U SquirtCanLib::sendMsg(INT32U msgHdr, INT8U payload) {
-	return can->sendMsgBuf(msgHdr, 0, 1, &payload);
+	return can.sendMsgBuf(msgHdr, 0, 1, &payload);
 }
 
 INT8U SquirtCanLib::getMsg(INT32U msgHdr) {
+	cli();
+	INT8U result;
 	switch(msgHdr) {
 		case CAN_MSG_HDR_DRINK_ORDER:
-			return mailboxDrinkOrder;
+			result =  mailboxDrinkOrder;
 			break;
 		case CAN_MSG_HDR_READY_TO_MOVE:
-			return mailboxReadyToMove;
+			result =  mailboxReadyToMove;
 			break;
 		case CAN_MSG_HDR_RUNNING:
-			return mailboxRunning;
+			result =  mailboxRunning;
 			break;
 		case CAN_MSG_HDR_UI_HEALTH:
-			return mailboxUiHealth;
+			result =  mailboxUiHealth;
 			break;
 		case CAN_MSG_HDR_SERVING_STATUS:
-			return mailboxServingStatus;
+			result =  mailboxServingStatus;
 			break;
 		case CAN_MSG_HDR_SERVING_HEALTH:
-			return mailboxServingHealth;
+			result =  mailboxServingHealth;
 			break;
 		case CAN_MSG_HDR_STOCK_STATUS:
-			return mailboxStockStatus;
+			result =  mailboxStockStatus;
 			break;
 		case CAN_MSG_HDR_PREP_STATUS:
-			return mailboxPrepStatus;
+			result =  mailboxPrepStatus;
 			break;
 		case CAN_MSG_HDR_PREP_HEALTH:
-			return mailboxPrepHealth;
+			result =  mailboxPrepHealth;
 			break;
 		case CAN_MSG_HDR_MOVING:
-			return mailboxMoving;
+			result =  mailboxMoving;
 			break;
 		case CAN_MSG_HDR_AT_ROW:
-			return mailboxAtRow;
+			result =  mailboxAtRow;
 			break;
 		case CAN_MSG_HDR_DRIVE_HEALTH:
-			return mailboxDriveHealth;
+			result =  mailboxDriveHealth;
 			break;
 		default:
-			return 0x00;
+			result =  0x00;
 			break;
 	}
+	sei();
+	return result;
 }
 
 void SquirtCanLib::receivedMsg() {
-	INT8U payload;
+	INT8U payload[1];
 	INT8U len = 1;
-	can->readMsgBuf(&len, &payload); // Read data: len = data length, buf = data byte(s)
-	INT32U msgHdr = can->getCanId();
+	can.readMsgBuf(&len, payload); // Read data: len = data length, buf = data byte(s)
+	INT32U msgHdr = can.getCanId();
 	switch(msgHdr) {
 		case CAN_MSG_HDR_DRINK_ORDER:
-			mailboxDrinkOrder = payload;
+			mailboxDrinkOrder = payload[0];
 			break;
 		case CAN_MSG_HDR_READY_TO_MOVE:
-			mailboxReadyToMove = payload;
+			mailboxReadyToMove = payload[0];
 			break;
 		case CAN_MSG_HDR_RUNNING:
-			mailboxRunning = payload;
+			mailboxRunning = payload[0];
 			break;
 		case CAN_MSG_HDR_UI_HEALTH:
-			mailboxUiHealth = payload;
+			mailboxUiHealth = payload[0];
 			break;
 		case CAN_MSG_HDR_SERVING_STATUS:
-			mailboxServingStatus = payload;
+			mailboxServingStatus = payload[0];
 			break;
 		case CAN_MSG_HDR_SERVING_HEALTH:
-			mailboxServingHealth = payload;
+			mailboxServingHealth = payload[0];
 			break;
 		case CAN_MSG_HDR_STOCK_STATUS:
-			mailboxStockStatus = payload;
+			mailboxStockStatus = payload[0];
 			break;
 		case CAN_MSG_HDR_PREP_STATUS:
-			mailboxPrepStatus = payload;
+			mailboxPrepStatus = payload[0];
 			break;
 		case CAN_MSG_HDR_PREP_HEALTH:
-			mailboxPrepHealth = payload;
+			mailboxPrepHealth = payload[0];
 			break;
 		case CAN_MSG_HDR_MOVING:
-			mailboxMoving = payload;
+			mailboxMoving = payload[0];
 			break;
 		case CAN_MSG_HDR_AT_ROW:
-			mailboxAtRow = payload;
+			mailboxAtRow = payload[0];
 			break;
 		case CAN_MSG_HDR_DRIVE_HEALTH:
-			mailboxDriveHealth = payload;
+			mailboxDriveHealth = payload[0];
 			break;
 		default:
 			break;
