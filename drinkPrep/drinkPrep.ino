@@ -6,8 +6,11 @@
 //actuators actually take.
 
 #include <SquirtCanLib.h>
-#define WAITING 0
-#define PREPARING 1
+
+enum States{
+  WAITING,
+  PREPARING
+};
 
 int slavePin = 5;
 int interruptPin = 8;
@@ -18,7 +21,7 @@ int leadScrewPin = 1;
 int shutoffPin = 0;
 
 char msg;
-bool state = WAITING;
+States state = WAITING;
 char prevDrinkOrder = 0;
 bool stockStatus[] = {1, 1, 1, 1};
 

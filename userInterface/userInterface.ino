@@ -10,13 +10,21 @@
 #include <LiquidCrystal.h>
 #define STARTUP 1
 #define SHUTDOWN 0
-#define LEFT 0
+#define LEFT 0 
 #define RIGHT 1
-#define REQUESTING 0
-#define PREPARING 1
-#define SERVING 2
-#define DRIVING 3
-#define DONE 4
+//for now, keep startup/shutdown/left/right this way
+//for convenience. also, would we need an enum for 
+//what's basically a boolean?
+
+
+enum States{
+  REQUESTING,
+  PREPARING,
+  SERVING,
+  DRIVING,
+  DONE
+}; 
+
 INT32U statusMsgs[] = {SquirtCanLib::CAN_MSG_HDR_UI_HEALTH,
                        SquirtCanLib::CAN_MSG_HDR_SERVING_HEALTH,
                        SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH,
@@ -28,9 +36,11 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2); //these are the lcd pins.
 int buttonPins[] = {6, 7, 8};
 int buttonStates[] = {0, 0, 0};
 
+//all pins are the same for each LED color because 
+//we want to use an Uno, dangit
 int led1Pins[] = {13, 14, 15}; //R,G,B
-int led2Pins[] = {16, 17, 18}; //R,G,B
-int led3Pins[] = {19, 20, 21}; //R,G,B
+int led2Pins[] = {13, 14, 15}; //R,G,B
+int led3Pins[] = {13, 14, 15}; //R,G,B
 
 //for setting LED colors
 const int GREEN[] = {0, 255, 0};
@@ -52,7 +62,7 @@ bool side;
 int seat;
 char drinkOrder = 0xFF;
 char currentRow;
-int state = REQUESTING;
+States state = REQUESTING;
 
 SquirtCanLib scl;
 
