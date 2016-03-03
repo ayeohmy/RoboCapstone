@@ -80,13 +80,17 @@ void loop() {
         //estimate aisle pose
         double pose[3];
         estimatePose(pose);
-        
+
+        bool strafe = false; 
+        bool turn = false; 
         //if it's on-center enough, just go straight
         //otherwise, turn 
-        if(pose[2] > 0.174533 
-           || (abs(pose[0] - (aisleWidth/2)) > 2)){
+        if(pose[2] > 0.174533 ){
+          turn = true; 
+        }
+        if (abs(pose[0] - (aisleWidth/2)) > 2)){
             //0.174.. rad = 10 degrees
-        
+          strafe = true; 
         }
 
   switch (state) {
