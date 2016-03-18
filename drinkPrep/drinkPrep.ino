@@ -159,7 +159,7 @@ int getCup() {
 
     outSwitch = digitalRead(limitSwitchPins[0]);
   }
-
+       //stop movin
   digitalWrite(armMotorPins[0], LOW);
   digitalWrite(armMotorPins[1], LOW);
 
