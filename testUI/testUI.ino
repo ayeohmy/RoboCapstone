@@ -25,7 +25,7 @@
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2); //these are the lcd pins.
 //(RS,enable, D4,D5,D6,D7)
 //(4, 6, 11,12,13,14)
-int buttonPins[] = {7, 8, 6};
+int buttonPins[] = {8, 7, 6};
 int buttonStates[] = {0, 0, 0};
 
 //all pins are the same for each LED color because
@@ -76,18 +76,19 @@ void loop() {
     buttonStates[i] = digitalRead(buttonPins[i]);
   }
   if (!buttonStates[0]) {
-    panelDisplay("beep boop", "button 1!", RED, RED, RED);
+    panelDisplay("beep booooop", "button 1!", RED, RED, RED);
     Serial.println("button 1");
   }
   if (!buttonStates[1]) {
     panelDisplay("bleep blop?", "button 2!", RED, RED, RED);
     Serial.println("button 2");
   }
-/*  if (!buttonStates[2]) {
-    //    panelDisplay("boop bloop","button 3!",RED,RED,RED);
+  if (!buttonStates[2]) {
+        panelDisplay("boop bloop","button 3!",RED,RED,RED);
+         Serial.println("button 3");
   } 
-  */
-  if((buttonStates[0] && buttonStates[1])) {
+  
+  if(buttonStates[2] && (buttonStates[0] && buttonStates[1])) {
     panelDisplay("beep boop", "*-*-*", GREEN, GREEN, GREEN);
   }
 
