@@ -1,26 +1,69 @@
 //drinkprep.ino: define the drink prep.
 //contact: Gillian Rosen, gtr@andrew.cmu.edu
 
-//TODO: add code for controlling the compressor
-//finish getCup() when you know what the linear
-//actuators actually take.
+//TODO:
+//!!!!!!!add stuff for the stack limit switch pins!!!!!!!
+//add code for controlling the compressor
+//add code for the pressure sensor
+//Think about how to give message updates at a certain frequency. 
+//interrupts maybe? 
 //check the direction of actuating the lin ac
 //when you can and update getCup() accordingly.
 
-#include <SquirtCanLib.h>
+
+/* Actual physical system updates
+ * 
+ * NEWLY ADDED STUFF
+ * - compressor control, with the pressure sensor
+ * - linear actuator control, with two limit switches
+ * - lead screw/stepper control, with two limit switches
+ * - 
+ * 
+ * STUFF WE THREW OUT
+ * - stock sensors. we need to count stuff instead.
+ * 
+ */
+
+
+#include <SquirtCanLib.h>2
 #include "DRV8825.h"
 enum States {
   WAITING,
   PREPARING
 };
 
+//CURRENT ACTUAL PINS: 
+/*
+ * 0: nothing
+ * 1: nothing
+ * 2: INT on CAN chip (interruptPin?)
+ * 3: nothing
+ * 4: nothing
+ * 5: valve 2
+ * 6: valve 1
+ * 7: valve 3
+ * 8: pressure sensor (?)
+ * 9:  compressor + (?)
+ * 10: CS on CAN chip (slavePin?)
+ * 11: SI on CAN chip (data input?)
+ * 12: SO on CAN chip  (data output?)
+ * 13: SCK on CAN chip (clock?)
+ * 
+ */
+
+//HIGH on the pressure sensor means that the pressure is LOW. 
+//so if it's HIGH/1, then you need to turn it on! 
+
 int slavePin = 5;
 int interruptPin = 8;
-int stockPins[] = {7, 8, 9, 6}; //last one is for cups
-int valvePins[] = {3, 4, 5};
+int stockPins[] = {0,1,3,4}; //last one is for cups
+int valvePins[] = {6, 5, 7};
 int armMotorPins[] = {2, 10}; //i THINK we need two pins, one pwr one gnd
-int limitSwitchPins[] = {11, 12}; //pins for limit switches
+int grabberLimitSwitchPins[] = {11, 12}; //pins for grabber limit switches
+int stackLimitSwitchPins[] = {7,8}; //pins for stack limit switches
 int stepperPins[] = {1,13}; //{direction, step} pins
+int pressureSensorPin = 8; 
+int compressorPin = 9; 
 int shutoffPin = 0;
 
 char msg;
@@ -39,8 +82,10 @@ void setup() {
   }
   pinMode(armMotorPins[0], OUTPUT);
   pinMode(armMotorPins[1], OUTPUT);
-  pinMode(limitSwitchPins[0], INPUT);
-  pinMode(limitSwitchPins[1], INPUT);
+  pinMode(grabberLimitSwitchPins[0], INPUT);
+  pinMode(grabberLimitSwitchPins[1], INPUT);
+  pinMode(stackLimitSwitchPins[0], INPUT);
+  pinMode(stackLimitSwitchPins[1], INPUT);
 
   //tell the linear actuator to not go yet
   digitalWrite(armMotorPins[0], LOW);
@@ -58,6 +103,8 @@ void setup() {
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, char(0xFF));
+  Serial.println("drinkPrep setup done."); 
+  
 }
 
 void loop() {
@@ -68,9 +115,10 @@ void loop() {
     //if we just got an order, time to start preparing a drink!
     state = PREPARING;
   }
+   
   prevDrinkOrder = drinkOrder;
   if (state == PREPARING) {
-
+    Serial.println("state: PREPARING");
     //prepping:
     //JUST! DO IT!
     msg = 1;
@@ -151,13 +199,13 @@ int getCup() {
                     //how much rotation we actually need per action.
                     
   //reach out
-  int outSwitch = digitalRead(limitSwitchPins[0]);
-  int inSwitch = digitalRead(limitSwitchPins[1]);
+  int outSwitch = digitalRead(grabberLimitSwitchPins[0]);
+  int inSwitch = digitalRead(grabberLimitSwitchPins[1]);
   while (!outSwitch) {
     digitalWrite(armMotorPins[0], HIGH);
     digitalWrite(armMotorPins[1], LOW);
 
-    outSwitch = digitalRead(limitSwitchPins[0]);
+    outSwitch = digitalRead(grabberLimitSwitchPins[0]);
   }
        //stop movin
   digitalWrite(armMotorPins[0], LOW);
@@ -165,7 +213,7 @@ int getCup() {
 
   //stack actuate down
 
- stepper.rotate(-300); //rotate 360 degrees. figure out empirically
+ stepper.rotate(-300); //rotate -300 degrees. figure out empirically
                     //how much rotation we actually need per action.
                     
 
@@ -174,7 +222,7 @@ int getCup() {
     digitalWrite(armMotorPins[0], LOW);
     digitalWrite(armMotorPins[1], HIGH);
 
-    inSwitch = digitalRead(limitSwitchPins[1]);
+    inSwitch = digitalRead(grabberLimitSwitchPins[1]);
   }
 
 

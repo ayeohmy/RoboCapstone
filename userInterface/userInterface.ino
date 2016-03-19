@@ -268,6 +268,14 @@ int checkStatus() {
 
 void panelDisplay(String line1, String line2, const int led1[], const int led2[], const int led3[]) {
   //displays the given two lines and three LED colors on the UI panel
+  //pad as necessary
+  while (line1.length() < 16){
+    line1 += " "; 
+  }
+  while (line2.length() < 16){
+    line2 += " "; 
+  }    
+  //write on the lcd
   lcd.setCursor(0, 0);
   lcd.print(line1);
   lcd.setCursor(0, 1);

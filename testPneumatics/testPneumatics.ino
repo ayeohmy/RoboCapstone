@@ -26,18 +26,21 @@
 //so if it's HIGH/1, then you need to turn it on!
 
 int valvePins[] = {6, 5, 7};
-int pressureSensorPin = 8;
-int compressorPin = 9;
+int pressureSensorPin = 3;
+int compressorPin = 4;
 
 
 void setup() {
   // put your setup code here, to run once:
   pinMode(valvePins[0], OUTPUT);
   pinMode(valvePins[1], OUTPUT);
-  pinMode(valvePins[2], OUTPUT);
+  pinMode(valvePins[2], OUTPUT);0
+  
   pinMode(pressureSensorPin, INPUT);
   pinMode(compressorPin, OUTPUT);
-  Serial.println("enter a number (1,2, or 3) to open that valve.");
+  Serial.begin(9600); 
+  
+  Serial.println("enter a number (1,2, or 3) to open that valve, 0 to close all.");
 }
 
 void loop() {
@@ -46,29 +49,46 @@ void loop() {
 
   // if the thing is low pressure, turn on the compressor
   //otherwise don't
-  int needPressure = digitalRead(pressureSensorPin);
-  if (needPressure) {
+  volatile int needPressure = digitalRead(pressureSensorPin);
+  Serial.println(needPressure);
+  if (needPressure == 1) {
     digitalWrite(compressorPin, HIGH);
+    Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
+    Serial.println("compressor OFF"); 
   }
 
   char valveNo = Serial.read();
+  //Serial.println(valveNo); 
   switch (valveNo) {
+        case '0': {
+        digitalWrite(valvePins[0], LOW);
+        digitalWrite(valvePins[1], LOW);
+        digitalWrite(valvePins[2], LOW);
+        Serial.println("close all");
+          break; 
+      }
     case '1': {
         digitalWrite(valvePins[0], HIGH);
         digitalWrite(valvePins[1], LOW);
         digitalWrite(valvePins[2], LOW);
+        Serial.println("open 1");
+        break;
       }
     case '2': {
         digitalWrite(valvePins[0], LOW);
         digitalWrite(valvePins[1], HIGH);
         digitalWrite(valvePins[2], LOW);
+        Serial.println("open 2"); 
+        break; 
       }
     case '3': {
         digitalWrite(valvePins[0], LOW);
         digitalWrite(valvePins[1], LOW);
         digitalWrite(valvePins[2], HIGH);
+        Serial.println("open 3"); 
+        break; 
       }
 
     default:
