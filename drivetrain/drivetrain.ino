@@ -159,6 +159,7 @@ double getRange(int pins[]) {
   long duration = pulseIn(echoPin, HIGH, 0.5);
   //default timeout is 1 second. i moved it up to 0.5?
   double dist = (duration / 2.0) / 29.14;
+  return dist; 
   //duration (in microseconds) is divided by two
   //because it gives the time to get there and back.
   //speed of sound = 29.14 microseconds per centimeter

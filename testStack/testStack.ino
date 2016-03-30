@@ -1,6 +1,7 @@
 //testStack: test the cup stack & grabber
 //TODO: test iiiiiiiit
 
+ //NOTE: up and down for the stepper are reve3rsed; see stepperGo() 
 
 #include "DRV8825.h"
 
@@ -27,14 +28,16 @@ bool runStack = true;
 bool runGrab = false;
 bool danger = true;
 
-int grabberMotorPins[] = {2, 10}; //i THINK we need two pins, one pwr one gnd
+int grabberMotorPins[] = {4, 10}; //i THINK we need two pins, one pwr one gnd
 int grabberLimitSwitchPins[] = {11, 12}; //pins for grabber limit switches {in, out}
 int stackLimitSwitchPins[] = {7, 8}; //pins for stack limit switches {bottom, top}
-int stackMotorPins[] = {1, 13}; //{direction, step} pins
+int stackMotorPins[] = {2, 3}; //{direction, step} pins
 
-int degsUp = 360;
-int degsDown = 270;
-DRV8825 stepper(200, 1, 13); //steps/rev, dir, step
+int degsUp = 720;
+int degsDown = 720;
+int rpms = 400;
+
+DRV8825 stepper(200, stackMotorPins[0], stackMotorPins[1]); //steps/rev, dir, step
 
 
 void setup() {
@@ -46,7 +49,7 @@ void setup() {
 
 
     //set up stepper motor
-    stepper.setRPM(1); //1 RPM i guess?
+    stepper.setRPM(rpms); //1 RPM i guess?
     stepper.setMicrostep(1); // nope on microstepping
   }
 
@@ -60,6 +63,13 @@ void setup() {
     digitalWrite(grabberMotorPins[0], LOW);
     digitalWrite(grabberMotorPins[1], LOW);
   }
+  Serial.begin(9600);
+  Serial.print("runStack:");
+  Serial.println(runStack); 
+    Serial.print("runGrab:");
+  Serial.println(runGrab);
+  Serial.print("live dangerously?");
+  Serial.println(danger);  
   Serial.println("w to raise stack, s to lower stack, a to extend arm, d to retract arm");
 
 }
@@ -73,11 +83,13 @@ void loop() {
   switch (cmd) {
     case 'w': {
         if (danger) {
-          stepperGoDangerously(360);
+          stepperGoDangerously(degsUp);
+            Serial.println("stack up (dangerously)");
         } else {
-          stepperGo(360);
+          stepperGo(degsUp);
+            Serial.println("stack up");
         }
-        Serial.println("stack up");
+      
         break;
       }
     case 'a': {
@@ -91,11 +103,14 @@ void loop() {
       }
     case 's': {
         if (danger) {
-          stepperGoDangerously(-360);
+          stepperGoDangerously(-degsDown);
+          
+        Serial.println("stack down(dangerously)");
         } else {
-          stepperGo(-360);
-        }
+          stepperGo(-degsDown);
+          
         Serial.println("stack down");
+        }
         break;
       }
     case 'd': {
@@ -117,7 +132,7 @@ void loop() {
 }
 
 void stepperGoDangerously(int degs) {
-  stepper.rotate(degs);
+  stepper.rotate(-degs);
 
 }
 

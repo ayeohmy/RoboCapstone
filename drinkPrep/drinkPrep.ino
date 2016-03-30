@@ -5,14 +5,6 @@
 //!!!!!!!add stuff for the stack limit switch pins!!!!!!!
 //add code for controlling the compressor
 //add code for the pressure sensor
-//add code for actuating according to limit switches
-//Think about how to give message updates at a certain frequency. 
-//interrupts maybe? 
-//check the direction of actuating the lin ac
-//when you can and update getCup() accordingly.
-
-
-/* Actual physical system updates
  * 
  * NEWLY ADDED STUFF
  * - compressor control, with the pressure sensor
@@ -227,8 +219,6 @@ int getCup() {
     inSwitch = digitalRead(grabberLimitSwitchPins[1]);
   }
 
-
-
   return 0;
 }
 
@@ -241,10 +231,10 @@ char packStock(bool stock[]) {
     ret = ret | 0x40; //0100 0000
   } //else it's already at zeros
   if (stock[2] == true) {
-    ret = ret | 0x20; //0100 0000
+    ret = ret | 0x20; //0010 0000
   } //else it's already at zeros
   if (stock[3] == true) {
-    ret = ret | 0x10; //0100 0000
+    ret = ret | 0x10; //0001 0000
   } //else it's already at zeros
 
   return ret;
