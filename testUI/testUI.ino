@@ -76,20 +76,20 @@ void loop() {
     buttonStates[i] = digitalRead(buttonPins[i]);
   }
   if (!buttonStates[0]) {
-    panelDisplay("beep booooop", "button 1!", RED, RED, RED);
+    panelDisplay("beep booooop", "button 1- red!", RED, RED, RED);
     Serial.println("button 1");
   }
   if (!buttonStates[1]) {
-    panelDisplay("bleep blop?", "button 2!", RED, RED, RED);
+    panelDisplay("bleep blop?", "button 2- green!", GREEN, GREEN, GREEN);
     Serial.println("button 2");
   }
   if (!buttonStates[2]) {
-        panelDisplay("boop bloop","button 3!",RED,RED,RED);
+        panelDisplay("boop bloop","button 3- white!",WHITE, WHITE, WHITE);
          Serial.println("button 3");
   } 
   
   if(buttonStates[2] && (buttonStates[0] && buttonStates[1])) {
-    panelDisplay("beep boop", "*-*-*", GREEN, GREEN, GREEN);
+    panelDisplay("beep boop", "*-*-*", BLACK, BLACK, BLACK);
   }
 
   // lcd.setCursor(0, 1);
