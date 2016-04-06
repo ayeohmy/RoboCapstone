@@ -1,5 +1,5 @@
 //testStack: test the cup stack & grabber
-//TODO: test iiiiiiiit
+//to think of: put rubberized lining on the gripper inside
 
 //NOTE: up and down for the stepper are reversed; see stepperGo()
 
@@ -26,7 +26,7 @@
 
 bool runStack = true;
 bool runGrab = true;
-bool danger = true;
+
 
 int grabberMotorPins[] = {8, 10, 9}; //{ina, inb, pwm}. DO NOT put pwm on 5 or 6!
 int grabberLimitSwitchPins[] = {6, 7}; //pins for grabber limit switches {in, out}
@@ -38,7 +38,7 @@ int degsDown = 180;
 int rpms = 400;
 
 int motorTime = 500; //ms
-int motorSpeed = 220;
+int motorSpeed = 250;
 DRV8825 stepper(200, stackMotorPins[0], stackMotorPins[1]); //steps/rev, dir, step
 
 
@@ -70,8 +70,6 @@ void setup() {
   Serial.println(runStack);
   Serial.print("runGrab:");
   Serial.println(runGrab);
-  Serial.print("live dangerously?");
-  Serial.println(danger);
   Serial.println("w to raise stack, s to lower stack, a to extend arm, d to retract arm");
 
 }
@@ -84,50 +82,32 @@ void loop() {
   //Serial.println(cmd);
   switch (cmd) {
     case 'w': {
-        if (danger) {
-          stepperGoDangerously(degsUp);
-          Serial.println("stack up (dangerously)");
-        } else {
-          stepperGo(degsUp);
-          Serial.println("stack up");
-        }
-
+          setStepper(degsUp);
+          Serial.println("stack up ");
         break;
       }
     case 'a': {
-        if (danger) {
+        
           linearGoDangerously(-1);
-        } else {
-
-        }
         Serial.println("grabber in");
         break;
       }
     case 's': {
-        if (danger) {
-          stepperGoDangerously(-degsDown);
-
-          Serial.println("stack down(dangerously)");
-        } else {
-          stepperGo(-degsDown);
-
+          setStepper(-degsDown);
           Serial.println("stack down");
-        }
         break;
       }
     case 'd': {
-        if (danger) {
+       
           linearGoDangerously(1);
-        } else {
-
-        }
         Serial.println("grabber out");
         break;
       }
 
     case 'i': {
         //stepper run up continuously
-        runContinuously(1, STEPPER);
+        int howfar = runContinuously(1, STEPPER);
+        Serial.println(howfar); 
         break;
       }
     case 'k': {
@@ -162,7 +142,11 @@ void loop() {
         Serial.println(lim);
         break;
       }
-
+    case 'g': {
+        //get a cup
+        getCup();
+        break;
+      }
 
     default:
       linearGoDangerously(0);
@@ -172,13 +156,19 @@ void loop() {
 
 }
 
-void stepperGoDangerously(int degs) {
+void setStepper(int degs) {
+//set the stepper to go the specified amount of degrees. 
+//note that the stepper direction is reversed, so we need to
+//flip the sign of the input. 
   stepper.rotate(-degs);
 
 }
 
 void linearGoDangerously(int howso) {
-
+//run the linear actuator in the specified direction; 
+//-1 to go in, 1 to go out. for any other input, stops the motor. 
+//runs for the amount of time specified by the global motorTime,
+//at the speed specified by global motorSpeed.  
   switch (howso) {
     case -1:
       //go in
@@ -197,57 +187,12 @@ void linearGoDangerously(int howso) {
   }
 }
 
-void stepperGo(int degs) {
-  if (degs > 0) {
-
-    // want/need to check continuously while rotating?
-    int degsSoFar = 0;
-    while (degsSoFar < degs) {
-      Serial.print("degsSoFar: ");
-      Serial.println(degsSoFar);
-      int limitCheck = digitalRead(stackLimitSwitchPins[1]);
-      if (limitCheck) {
-        if (degs - degsSoFar > 90) {
-          //go 90
-          stepper.rotate(90);
-        } else {
-          //go the remaining distance
-          stepper.rotate(degs - degsSoFar);
-        }
-      }
-      degsSoFar += 90;  //incrementing by 90 means... how far?
-    }
-  } else {
-    //check bottom limit switch to go down
-    int degsSoFar = 0;
-    while (degsSoFar > degs) {
-      Serial.print("degsSoFar: ");
-      Serial.println(degsSoFar);
-      int limitCheck = digitalRead(stackLimitSwitchPins[0]);
-      if (limitCheck) {
-        if (degs - degsSoFar < -90) {
-          //go 90
-          stepper.rotate(-90);
-        } else {
-          //go the remaining distance
-          stepper.rotate(degs - degsSoFar);
-        }
-      }
-
-      degsSoFar -= 90;  //incrementing by 90 means... how far?
-    }
-  }
-
-}
-
 int runContinuously(int dir, bool motor) {
-  //runs the motor continuously until we hit the limit switch.
+  //runs the specified motor (motor) continuously
+  //in the specified direction (dir) until we hit the 
+  //corresponding limit switch.
   //1 for up/out, -1 for down/in
-  
-  //note: stepper direction is reversed!!!! 
-
-
-  
+ 
   int pins[2];
   if (motor == STEPPER) {
     pins[0] = stackLimitSwitchPins[0];
@@ -264,7 +209,7 @@ int runContinuously(int dir, bool motor) {
   int degsSoFar = 0;
   while (limSwitch) {
     if (motor == STEPPER) {
-      stepper.rotate((-1*dir) * 60);
+      setStepper(dir * 60);
       degsSoFar += 60;
     } else { //motor == LINEAR, i'm assuming
       setMotor(grabberMotorPins, dir * 220);
@@ -274,7 +219,7 @@ int runContinuously(int dir, bool motor) {
   }
   if (motor == STEPPER){
    // delay(20);
-  //  stepper.rotate((dir) * 90); //back up a lil bit
+  //  setStepper(-dir * 90); //back up a lil bit
   } else { //motor == LINEAR
     setMotor(grabberMotorPins, 0);
   }
@@ -291,37 +236,16 @@ int getCup() {
 
   //stack actuate up
   int degsUp = runContinuously(1, STEPPER);
+  
   //reach out
-  int outSwitch = digitalRead(grabberLimitSwitchPins[1]);
-  int inSwitch = digitalRead(grabberLimitSwitchPins[0]);
-  while (!outSwitch) {
-    digitalWrite(grabberMotorPins[0], HIGH);
-    digitalWrite(grabberMotorPins[1], LOW);
-
-    outSwitch = digitalRead(grabberLimitSwitchPins[0]);
-  }
-  //stop movin
-  digitalWrite(grabberMotorPins[0], LOW);
-  digitalWrite(grabberMotorPins[1], LOW);
+  runContinuously(1,LINEAR); 
 
   //stack actuate down
 
-  stepper.rotate(degsDown); //rotate -300 degrees. figure out empirically
-  //how much rotation we actually need per action.
-
+  setStepper(-3660); //empirically measured cup height 
 
   //reach in
-  while (!inSwitch) {
-    digitalWrite(grabberMotorPins[0], LOW);
-    digitalWrite(grabberMotorPins[1], HIGH);
-
-    inSwitch = digitalRead(grabberLimitSwitchPins[1]);
-  }
-
-  //stop movin
-  digitalWrite(grabberMotorPins[0], LOW);
-  digitalWrite(grabberMotorPins[1], LOW);
-
+  runContinuously(-1,LINEAR); 
 
   return 0;
 }
@@ -330,7 +254,7 @@ int getCup() {
 void setMotor(int pins[], int spd) {
   //input format: speed (+- int), pins ({inA,inB,pwm})
   if (spd >= 0) {
-    //go forward. currently assuming this is clockwise.
+    //go forward. for the linear actuator, this is counterclockwise.
     digitalWrite(pins[0], LOW);
     digitalWrite(pins[1], HIGH);
     analogWrite(pins[2], (byte)spd);

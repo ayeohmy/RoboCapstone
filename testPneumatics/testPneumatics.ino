@@ -1,27 +1,7 @@
 //testPneumatics: test them pneumatics
 
-//TODO: incremental testing code. all of it..... .
 
-
-//CURRENT ACTUAL PINS:
-/*
-   0: nothing
-   1: nothing
-   2: INT on CAN chip (interruptPin?)
-   3: nothing
-   4: nothing
-   5: valve 2
-   6: valve 1
-   7: valve 3
-   8: pressure sensor (?)
-   9:  compressor + (?)
-   10: CS on CAN chip (slavePin?)
-   11: SI on CAN chip (data input?)
-   12: SO on CAN chip  (data output?)
-   13: SCK on CAN chip (clock?)
-
-*/
-
+//notes about hardware: 
 //HIGH on the pressure sensor means that the pressure is LOW.
 //so if it's HIGH/1, then you need to turn it on!
 bool runUltrasound = true;
@@ -34,16 +14,18 @@ double maxDrinkDist = 11.0; //let's say when we're 4.0cm from the drink, we stop
 
 
 void setup() {
-  // put your setup code here, to run once:
-  //if (runUltrasound) {
-  pinMode(ultrasoundPins[0], OUTPUT);
-  pinMode(ultrasoundPins[1], INPUT);
-  //}
+  // set up ultrasound pins
+  if (runUltrasound) {
+    pinMode(ultrasoundPins[0], OUTPUT);
+    pinMode(ultrasoundPins[1], INPUT);
+  }
 
+  //set up vavle pins
   pinMode(valvePins[0], OUTPUT);
   pinMode(valvePins[1], OUTPUT);
   pinMode(valvePins[2], OUTPUT);
 
+  //set up pressure sensor and compressor
   pinMode(pressureSensorPin, INPUT);
   pinMode(compressorPin, OUTPUT);
   Serial.begin(9600);
@@ -54,7 +36,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-
+  //keep the system pressurized, always!
   // if the thing is low pressure, turn on the compressor
   //otherwise don't
   volatile int needPressure = digitalRead(pressureSensorPin);
@@ -71,112 +53,124 @@ void loop() {
   //Serial.println(valveNo);
   switch (valveNo) {
     case '0': {
-        digitalWrite(valvePins[0], LOW);
-        digitalWrite(valvePins[1], LOW);
-        digitalWrite(valvePins[2], LOW);
+        closeValves();
         Serial.println("close all");
         break;
       }
     case '1': {
-        digitalWrite(valvePins[0], HIGH);
-        digitalWrite(valvePins[1], LOW);
-        digitalWrite(valvePins[2], LOW);
+        openValve(1);
         Serial.println("open 1");
         break;
       }
     case '2': {
-        digitalWrite(valvePins[0], LOW);
-        digitalWrite(valvePins[1], HIGH);
-        digitalWrite(valvePins[2], LOW);
+        openValve(2);
         Serial.println("open 2");
         break;
       }
     case '3': {
-        digitalWrite(valvePins[0], LOW);
-        digitalWrite(valvePins[1], LOW);
-        digitalWrite(valvePins[2], HIGH);
+        openValve(3);
         Serial.println("open 3");
         break;
       }
     case 'a': {
         //dispense drink 1
-        Serial.println("dispensing 1...");
-        int drinkDist = getRange(ultrasoundPins);
-        Serial.print("drink distance: ");
-        Serial.println(drinkDist);
-        while (drinkDist > maxDrinkDist) {
-          digitalWrite(valvePins[0], HIGH);
-          digitalWrite(valvePins[1], LOW);
-          digitalWrite(valvePins[2], LOW);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-          delay(50);
-          drinkDist = getRange(ultrasoundPins);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-        }
-        Serial.println("done dispensing 1!");
-        digitalWrite(valvePins[0], LOW);
-        digitalWrite(valvePins[1], LOW);
-        digitalWrite(valvePins[2], LOW);
+        dispenseDrink(1);
         break;
       }
     case 's': {
         //dispense drink 2
-        Serial.println("dispensing 2...");
-        int drinkDist = getRange(ultrasoundPins);
-        while (drinkDist > maxDrinkDist) {
-          digitalWrite(valvePins[0], LOW);
-          digitalWrite(valvePins[1], HIGH);
-          digitalWrite(valvePins[2], LOW);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-          delay(50);
-          drinkDist = getRange(ultrasoundPins);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-        }
-        Serial.println("done dispensing 2!");
-        digitalWrite(valvePins[0], LOW);
-        digitalWrite(valvePins[1], LOW);
-        digitalWrite(valvePins[2], LOW);
+        dispenseDrink(2);
         break;
       }
     case 'd': {
         //dispense drink 3
-        Serial.println("dispensing 3...");
-        int drinkDist = getRange(ultrasoundPins);
-        while (drinkDist > maxDrinkDist) {
-          digitalWrite(valvePins[0], LOW);
-          digitalWrite(valvePins[1], LOW);
-          digitalWrite(valvePins[2], HIGH);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-          delay(50);
-          drinkDist = getRange(ultrasoundPins);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-        }
-        Serial.println("done dispensing 3!");
+        dispenseDrink(3);
+        break;
+      }
+
+    default:
+      break;
+  }
+  delay(100); 
+}
+
+void dispenseDrink(int drinkNo) {
+  //dispenses the specified drink (drinkNo == 1, 2, or 3).
+  //for any other value of drinkNo, does nothing.
+  if (drinkNo < 1 || drinkNo > 3) return;
+
+
+  //Serial.print("dispensing ");
+  //Serial.println(drinkNo);
+  int drinkDist = getRange(ultrasoundPins);
+
+  //while the drink's height is below the threshold height,
+  //keep dispensing
+  while (drinkDist > maxDrinkDist) {
+    openValve(drinkNo);
+
+    delay(50); //so we don't loop too tightly
+    drinkDist = getRange(ultrasoundPins);
+    //Serial.print("drink distance: ");
+    //Serial.println(drinkDist);
+  }
+
+  //stop dispensing
+  //Serial.print("done dispensing");
+  //Serial.println(drinkNo);
+  closeValves();
+}
+
+void openValve(int valveNo) {
+  //opens the specified valve (valveNo == 1, 2, or 3).
+  //for any other value of valveNo, shuts all valves.
+  switch (valveNo) {
+    case 1: {
+        digitalWrite(valvePins[0], HIGH);
+        digitalWrite(valvePins[1], LOW);
+        digitalWrite(valvePins[2], LOW);
+        break;
+      }
+    case 2: {
+        digitalWrite(valvePins[0], LOW);
+        digitalWrite(valvePins[1], HIGH);
+        digitalWrite(valvePins[2], LOW);
+        break;
+      }
+    case 3: {
+        digitalWrite(valvePins[0], LOW);
+        digitalWrite(valvePins[1], LOW);
+        digitalWrite(valvePins[2], HIGH);
+        break;
+      }
+    default: {
         digitalWrite(valvePins[0], LOW);
         digitalWrite(valvePins[1], LOW);
         digitalWrite(valvePins[2], LOW);
         break;
       }
-
-
-    default:
-      break;
   }
-  delay(100); //10 Hz-ish is fine? how does delay() even work
+
+
 }
 
+void closeValves() {
+  //closes all valves.
+  openValve(0);
+
+}
 
 double getRange(int pins[]) {
+  //gets the range measurement from an ultrasound sensor. 
+  //pins[] is a two-element array {t,e}, 
+  //where t is the pin no. for the TRIG pin and e is the pin no.
+  //of the ECHO pin for this sensor. 
+  //this pin pass-in format is needed for ranging from all four
+  //of the drivetrain sensors in the drivetrain sketch. 
+  
   int trigPin = pins[0];
   int echoPin = pins[1];
-  // Serial.println(pins[0]);
-  //  Serial.println(pins[1]);
+
   //get a range measurement, in cm, from an ultrasound sensor
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
