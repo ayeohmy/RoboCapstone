@@ -1,6 +1,27 @@
 //testDrivetrain: test the drivetrain.
+//you can drive for a short time in any direction, 
+//or drive continuously in any direction until an ultrasound
+//sees something. 
+//currently not listening to the encoders. probably should do that at some point...
 
 
+/* COMMANDS:
+ *  To stop at any time: press space and then enter 
+ *  
+ *  To drive for a short time: 
+ * w,s: front, back
+ * a,d: strafe left, strafe right
+ * q,e: turn left, turn right 
+ * 
+ * To drive continuously: 
+ * i,k: front, back
+ * j,l: strafe left, strafe right
+ * u,o: turn left, turn right 
+ * 
+ * To check ultrasound status: m
+ * 
+ * 
+ */
 
 int ultrasoundPins[5][2] = {{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}};
 //{{trig1, echo1}, {trig2, echo2}, etc.}
@@ -18,7 +39,17 @@ int motorSpeed = 100; // range: 0 to 255
 
 void setup() {
   // put your setup code here, to run once:
-
+   for (int i = 0; i < 5; i++) {
+    pinMode(ultrasoundPins[i][0], OUTPUT);
+    pinMode(ultrasoundPins[i][1], INPUT);
+  }
+  //motor stuff setup
+  for (int i = 0; i < 4; i++) {
+    pinMode(motorPins[i][0], OUTPUT);
+    pinMode(motorPins[i][1], OUTPUT);
+    pinMode(motorPins[i][2], OUTPUT);
+ }
+Serial.begin(9600); 
 }
 
 void loop() {
