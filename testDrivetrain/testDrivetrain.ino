@@ -20,6 +20,12 @@
  * 
  * To check ultrasound status: m
  * 
+ * To change speed: 
+ * 1: v. slow
+ * 2: slow
+ * 3: medium
+ * 4: fast
+ * 5: v. fast 
  * 
  */
 
@@ -35,7 +41,7 @@ int motorPins[4][3] = {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}, {28, 29, 30}};
 
 
 int motorSpeed = 100; // range: 0 to 255
-
+int motorTime = 500; //ms to drive
 
 void setup() {
   // put your setup code here, to run once:
@@ -61,42 +67,42 @@ void loop() {
     case 'w': {
         //forward
         forward(motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
     case 'q': {
         // rotate left
         turn(-motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
     case 'a': {
         //strafe left
         strafe(-motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
     case 'e': {
         //rotate right
         turn(motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
     case 'd': {
         //strafe right
         strafe(motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
     case 's': {
         //back
         back(motorSpeed);
-        delay(500);
+        delay(motorTime);
         stopMoving();
         break;
       }
