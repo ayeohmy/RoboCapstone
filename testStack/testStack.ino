@@ -1,6 +1,8 @@
 //testStack: test the cup stack & grabber
 //to think of: put rubberized lining on the gripper inside
 
+//TODO: REUPLOAD THIS, the thing is faster now 
+
 //NOTE: up and down for the stepper are reversed; see stepperGo()
 
 #include "DRV8825.h"
@@ -212,14 +214,21 @@ int runContinuously(int dir, bool motor) {
       setStepper(dir * 60);
       degsSoFar += 60;
     } else { //motor == LINEAR, i'm assuming
-      setMotor(grabberMotorPins, dir * 220);
+      setMotor(grabberMotorPins, dir * motorSpeed);
       delay(200);
     }
     limSwitch = digitalRead(limitPin);
+    
+  char cmd = Serial.read();
+  if(cmd == ' '){
+    //STOP.... 
+    Serial.println("STOPPIN"); 
+    limSwitch = 0; 
+  }
   }
   if (motor == STEPPER){
-   // delay(20);
-  //  setStepper(-dir * 90); //back up a lil bit
+    delay(300);
+    setStepper(-dir * 80); //back up a lil bit
   } else { //motor == LINEAR
     setMotor(grabberMotorPins, 0);
   }

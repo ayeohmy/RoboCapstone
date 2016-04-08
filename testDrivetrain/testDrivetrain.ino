@@ -29,19 +29,19 @@
  * 
  */
 
-int ultrasoundPins[5][2] = {{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}};
+int ultrasoundPins[5][2] = {{23,24}, {25,26}, {27,28}, {29,30}, {31,32}};
 //{{trig1, echo1}, {trig2, echo2}, etc.}
 //order: fc, fl, fr, bc, br
-int encoderPins[4][2] = {{11, 12}, {13, 14}, {15, 16}, {17, 18}};
+int encoderPins[4][2] = {{15,16}, {17,18}, {19,20}, {21,22}};
 //{{A1,B1},{A2,B2}, etc.}
 //order: f, l, r, b
-int motorPins[4][3] = {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}, {28, 29, 30}};
+int motorPins[4][3] = {{2,7,3}, {4,8,9}, {5,12,10},{6,13,11}};
 //{{INA1, INB1, PWM1}, {INA2, INB2, PWN2}, etc.}
 //order: f, l, r, b
 
 
 int motorSpeed = 100; // range: 0 to 255
-int motorTime = 500; //ms to drive
+int motorTime = 5000; //ms to drive
 
 void setup() {
   // put your setup code here, to run once:
@@ -65,6 +65,7 @@ void loop() {
   //Serial.println(cmd);
   switch (cmd) {
     case 'w': {
+      Serial.println("forward");
         //forward
         forward(motorSpeed);
         delay(motorTime);
@@ -72,6 +73,7 @@ void loop() {
         break;
       }
     case 'q': {
+        Serial.println("turn left");
         // rotate left
         turn(-motorSpeed);
         delay(motorTime);
@@ -79,6 +81,7 @@ void loop() {
         break;
       }
     case 'a': {
+        Serial.println("left");
         //strafe left
         strafe(-motorSpeed);
         delay(motorTime);
@@ -86,6 +89,7 @@ void loop() {
         break;
       }
     case 'e': {
+      Serial.println("turn right");
         //rotate right
         turn(motorSpeed);
         delay(motorTime);
@@ -93,6 +97,7 @@ void loop() {
         break;
       }
     case 'd': {
+      Serial.println("right"); 
         //strafe right
         strafe(motorSpeed);
         delay(motorTime);
@@ -100,6 +105,7 @@ void loop() {
         break;
       }
     case 's': {
+      Serial.println("back"); 
         //back
         back(motorSpeed);
         delay(motorTime);
