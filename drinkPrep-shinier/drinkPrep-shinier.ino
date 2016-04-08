@@ -180,6 +180,113 @@ if (state == PREPARING) {
      */
   //i guess we don't have anything to do here idly, since we 
   //have no stock sensing....
+
+  //so we'll do keyboard commands! 
+char keyIn = Serial.read();
+  //Serial.println(keyIn);
+  switch (keyIn) {
+ case '0': {
+        closeValves();
+        Serial.println("close all");
+        break;
+      }
+    case '1': {
+        openValve(1);
+        Serial.println("open 1");
+        break;
+      }
+    case '2': {
+        openValve(2);
+        Serial.println("open 2");
+        break;
+      }
+    case '3': {
+        openValve(3);
+        Serial.println("open 3");
+        break;
+      }
+          case '4': {
+        //dispense drink 1
+        dispenseDrink(1);
+        break;
+      }
+    case '5': {
+        //dispense drink 2
+        dispenseDrink(2);
+        break;
+      }
+    case '6': {
+        //dispense drink 3
+        dispenseDrink(3);
+        break;
+      }
+    case 'w': {
+          setStepper(degsUp);
+          Serial.println("stack up ");
+        break;
+      }
+    case 'a': {
+        
+          linearGoDangerously(-1);
+        Serial.println("grabber in");
+        break;
+      }
+    case 's': {
+          setStepper(-degsDown);
+          Serial.println("stack down");
+        break;
+      }
+    case 'd': {
+       
+          linearGoDangerously(1);
+        Serial.println("grabber out");
+        break;
+      }
+
+    case 'i': {
+        //stepper run up continuously
+        int howfar = runContinuously(1, STEPPER);
+        Serial.println(howfar); 
+        break;
+      }
+    case 'k': {
+        //stepper run down continuously
+        runContinuously(-1, STEPPER);
+        break;
+      }
+    case 'j': {
+        //grabber run in continuously
+        runContinuously(-1, LINEAR);
+        break;
+      }
+    case 'l': {
+        //grabber run out continuously
+        runContinuously(1, LINEAR);
+        break;
+      }
+    case 'm': {
+        //check limit pins
+        Serial.println("limit pins:");
+        bool lim = digitalRead(grabberLimitSwitchPins[0]);
+        Serial.print("grabber in:");
+        Serial.println(lim);
+        lim = digitalRead(grabberLimitSwitchPins[1]);
+        Serial.print("grabber out:");
+        Serial.println(lim);
+        lim = digitalRead(stackLimitSwitchPins[0]);
+        Serial.print("stack bottom:");
+        Serial.println(lim);
+        lim = digitalRead(stackLimitSwitchPins[1]);
+        Serial.print("stack top:");
+        Serial.println(lim);
+        break;
+      }
+    case 'g': {
+        //get a cup
+        getCup();
+        break;
+      }
+
   }
 
 }
