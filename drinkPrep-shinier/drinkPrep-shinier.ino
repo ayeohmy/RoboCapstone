@@ -46,7 +46,7 @@ int pressureSensorPin = 14;
 int compressorPin = 15;
 int ultrasoundPins[] = {16, 17}; //{trig, echo}
 int slavePin = 48;
-int interruptPin = 49; 
+int interruptPin = 49;
 
 
 //values we'll need to track
@@ -105,14 +105,14 @@ void setup() {
   msg = 0;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
-  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, char(0xFF));
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, msg);
 
 
   //set up timers, one for each message
   timer.setInterval(50, stockStatusUpdate);
   timer.setInterval(50, prepStatusUpdate);
   timer.setInterval(100, prepHealthUpdate);
-
+ 
 
   Serial.begin(9600);
   Serial.println("drinkPrep setup done.");
@@ -120,11 +120,11 @@ void setup() {
 
 void loop() {
 
-  
-/*** things to always do ****/
+
+  /*** things to always do ****/
 
 
-  
+
   //keep the system pressurized, always
   //if the thing is low pressure, turn on the compressor
   //otherwise don't
@@ -132,161 +132,188 @@ void loop() {
   //Serial.println(needPressure);
   if (needPressure == 1) {
     digitalWrite(compressorPin, HIGH);
-    //  Serial.println("compressor ON");
+      //Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
-    //  Serial.println("compressor OFF");
+   //  Serial.println("compressor OFF");
   }
 
   //timer maintenance
   timer.run();
 
- //check if it's time to make a drink
+  //check if it's time to make a drink
   char drinkOrder = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER);
-  if (drinkOrder != 0xFF & prevDrinkOrder == 0xFF) {
+  Serial.print("drinkorder: ");
+  Serial.println((int) drinkOrder); 
+  if (drinkOrder != 0 && prevDrinkOrder == 0) {
     //if we just got an order, time to start preparing a drink!
     state = PREPARING;
   }
-   
+
   prevDrinkOrder = drinkOrder;
 
 
 
-/*** things to sometimes do, depending on state ***/ 
+  /*** things to sometimes do, depending on state ***/
 
 
 
-if (state == PREPARING) {
-  /*
-   * PREPARING
-   */
-   //parse le drink order
-   int whichDrink = parseOrder(drinkOrder);
- 
-   //dispense le drink based on order
-   getCup(); 
-   Serial.println("cup retrieval done."); 
-   dispenseDrink(whichDrink);
-   Serial.println("drink dispensing done."); 
-   //update stocks
-   stock[3] = stock[3] - 1; //less one cup 
-   stock[whichDrink-1] = stock[whichDrink-1] - 1; 
-   //go back to waiting
-   state = WAITING;
+  if (state == PREPARING) {
+    /*
+       PREPARING
+    */
+    Serial.println("prepping a drink!"); 
+    //parse le drink order
+    //FOR NOW: fake drink order to 2
+    drinkOrder = 2; 
+    int whichDrink = parseOrder(drinkOrder);
 
+    //dispense le drink based on order
+   // getCup();
+    Serial.println("cup retrieval done.");
+    dispenseDrink(whichDrink);
+    Serial.println("drink dispensing done.");
+    //update stocks
+    stock[3] = stock[3] - 1; //less one cup
+    stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
+    //go back to waiting
+    state = WAITING;
+  Serial.println("drink done!"); 
   } else { //state must be WAITING
-    /* 
-     * WAITING
-     */
-  //i guess we don't have anything to do here idly, since we 
-  //have no stock sensing....
+    /*
+       WAITING
+    */
+    //i guess we don't have anything to do here idly, since we
+    //have no stock sensing....
 
-  //so we'll do keyboard commands! 
-char keyIn = Serial.read();
-  //Serial.println(keyIn);
-  switch (keyIn) {
- case '0': {
-        closeValves();
-        Serial.println("close all");
-        break;
-      }
-    case '1': {
-        openValve(1);
-        Serial.println("open 1");
-        break;
-      }
-    case '2': {
-        openValve(2);
-        Serial.println("open 2");
-        break;
-      }
-    case '3': {
-        openValve(3);
-        Serial.println("open 3");
-        break;
-      }
-          case '4': {
-        //dispense drink 1
-        dispenseDrink(1);
-        break;
-      }
-    case '5': {
-        //dispense drink 2
-        dispenseDrink(2);
-        break;
-      }
-    case '6': {
-        //dispense drink 3
-        dispenseDrink(3);
-        break;
-      }
-    case 'w': {
-          setStepper(degsUp);
+    //so we'll do keyboard commands!
+    char keyIn = Serial.read();
+    //Serial.println(keyIn);
+    switch (keyIn) {
+      case '0': {    
+          Serial.println("close all");
+          closeValves();
+          break;
+        }
+      case '1': {
+          Serial.println("open 1");
+          openValve(1);
+          break;
+        }
+      case '2': {
+          Serial.println("open 2");
+                    openValve(2);
+          break;
+        }
+      case '3': {
+   
+          Serial.println("open 3");
+                 openValve(3);
+          break;
+        }
+      case '4': {
+          //dispense drink 1
+                    Serial.println("dispense drink 1");
+          dispenseDrink(1);
+          break;
+        }
+      case '5': {
+          //dispense drink 2
+          Serial.println("dispense drink 2");
+                    dispenseDrink(2);
+          break;
+        }
+      case '6': {
+          //dispense drink 3
+          Serial.println("dispense drink 3");
+                    dispenseDrink(3);
+          break;
+        }
+      case 'w': {
           Serial.println("stack up ");
-        break;
-      }
-    case 'a': {
-        
-          linearGoDangerously(-1);
-        Serial.println("grabber in");
-        break;
-      }
-    case 's': {
+              setStepper(degsUp);
+          break;
+        }
+      case 'a': {
+  Serial.println("grabber in");
+           setMotor(grabberMotorPins, -motorSpeed);
+      delay(motorTime);
+      setMotor(grabberMotorPins, 0);        
+          break;
+        }
+      case 's': {
+               Serial.println("stack down");
           setStepper(-degsDown);
-          Serial.println("stack down");
-        break;
-      }
-    case 'd': {
-       
-          linearGoDangerously(1);
-        Serial.println("grabber out");
-        break;
-      }
+   
+          break;
+        }
+      case 'd': {
 
-    case 'i': {
-        //stepper run up continuously
-        int howfar = runContinuously(1, STEPPER);
-        Serial.println(howfar); 
-        break;
-      }
-    case 'k': {
-        //stepper run down continuously
-        runContinuously(-1, STEPPER);
-        break;
-      }
-    case 'j': {
-        //grabber run in continuously
-        runContinuously(-1, LINEAR);
-        break;
-      }
-    case 'l': {
-        //grabber run out continuously
-        runContinuously(1, LINEAR);
-        break;
-      }
-    case 'm': {
-        //check limit pins
-        Serial.println("limit pins:");
-        bool lim = digitalRead(grabberLimitSwitchPins[0]);
-        Serial.print("grabber in:");
-        Serial.println(lim);
-        lim = digitalRead(grabberLimitSwitchPins[1]);
-        Serial.print("grabber out:");
-        Serial.println(lim);
-        lim = digitalRead(stackLimitSwitchPins[0]);
-        Serial.print("stack bottom:");
-        Serial.println(lim);
-        lim = digitalRead(stackLimitSwitchPins[1]);
-        Serial.print("stack top:");
-        Serial.println(lim);
-        break;
-      }
-    case 'g': {
-        //get a cup
-        getCup();
-        break;
-      }
+          Serial.println("grabber out");
+          setMotor(grabberMotorPins, motorSpeed);
+      delay(motorTime);
+      setMotor(grabberMotorPins, 0);
+          break;
+        }
 
+      case 'i': {
+        Serial.println("stepping up");
+          //stepper run up continuously
+          int howfar = runContinuously(1, STEPPER);
+          break;
+        }
+      case 'k': {
+               Serial.println("stepping down");
+          //stepper run down continuously
+          runContinuously(-1, STEPPER);
+   
+          break;
+        }
+      case 'j': {
+          //grabber run in continuously
+          Serial.println("grabbing in");
+          runContinuously(-1, LINEAR);
+          
+          break;
+        }
+      case 'l': {
+          //grabber run out continuously
+          Serial.println("grabbing out"); 
+          runContinuously(1, LINEAR);
+          break;
+        }
+      case 'm': {
+          //check limit pins
+          Serial.println("limit pins:");
+          bool lim = digitalRead(grabberLimitSwitchPins[0]);
+          Serial.print("grabber in:");
+          Serial.println(lim);
+          lim = digitalRead(grabberLimitSwitchPins[1]);
+          Serial.print("grabber out:");
+          Serial.println(lim);
+          lim = digitalRead(stackLimitSwitchPins[0]);
+          Serial.print("stack bottom:");
+          Serial.println(lim);
+          lim = digitalRead(stackLimitSwitchPins[1]);
+          Serial.print("stack top:");
+          Serial.println(lim);
+          break;
+        }
+      case 'g': {
+          //get a cup
+          Serial.println("getting a cup...!" ); 
+          getCup();
+          break;
+        }
+        case 'p':{
+          Serial.println("switching state to PREPARING"); 
+          state = PREPARING; 
+          break;
+        }
+      default:
+        break;
+
+    }
   }
 
 }
@@ -295,10 +322,10 @@ char keyIn = Serial.read();
 
 
 /*
- *
+
  * * * * * HELPER FUNCTIONS
- *
- */
+
+*/
 
 
 
@@ -377,8 +404,8 @@ int runContinuously(int dir, bool motor) {
   if (motor == STEPPER) {
     delay(300);
     setStepper(-dir * 80); //back up a lil bit
-  } 
-  
+  }
+
   setMotor(grabberMotorPins, 0);
 
   return dir * degsSoFar;
@@ -424,9 +451,11 @@ void dispenseDrink(int drinkNo) {
   if (drinkNo < 1 || drinkNo > 3) return;
 
 
-  //Serial.print("dispensing ");
-  //Serial.println(drinkNo);
-  int drinkDist = getRange(ultrasoundPins);
+ // Serial.print("dispensing ");
+ // Serial.println(drinkNo);
+  double drinkDist = getRange(ultrasoundPins);
+  Serial.print("drink distance: ");
+   Serial.println(drinkDist);
   long timecheck0 = millis();
   long timecheck = timecheck0;
   //while the drink's height is below the threshold height,
@@ -434,27 +463,27 @@ void dispenseDrink(int drinkNo) {
   //keep dispensing
 
   while ((drinkDist > maxDrinkDist)
-         && (timecheck - timecheck0 < 15000)) {
+         && (timecheck - timecheck0 < 5000)) {
     openValve(drinkNo);
 
     delay(50); //so we don't loop too tightly
     timecheck = millis();
     drinkDist = getRange(ultrasoundPins);
 
-    //Serial.print("drink distance: ");
-    //Serial.println(drinkDist);
+    Serial.print("drink distance: ");
+    Serial.println(drinkDist);
 
-     char cmd = Serial.read();
+    char cmd = Serial.read();
     if (cmd == ' ') {
       //STOP....
       Serial.println("STOPPIN");
-      limSwitch = 0;
+      drinkDist = maxDrinkDist;
     }
   }
 
   //stop dispensing
-  //Serial.print("done dispensing");
-  //Serial.println(drinkNo);
+  Serial.print("done dispensing");
+  Serial.println(drinkNo);
   closeValves();
 }
 
@@ -585,9 +614,9 @@ void prepHealthUpdate() {
 }
 
 
-/*parseOrder(DRINKORDER): parses the drink order, returning 
- * an int corresponding to the ordered drink.
- */
+/*parseOrder(DRINKORDER): parses the drink order, returning
+   an int corresponding to the ordered drink.
+*/
 int parseOrder(char drinkOrder) {
   //IDEA: which drink you want is just an unsigned char number.
   // leading bit is then added on top; it denotes the side.
@@ -595,9 +624,8 @@ int parseOrder(char drinkOrder) {
   //remove the 'side' bit to get to the good content
   drinkOrder = drinkOrder & 0x7F;  // 0111 1111
 
-  //note: 0x7F will be what you get if you
-  //try to parse a 'null' drink order
-  return drinkOrder+1; //change from (0,1,2) to (1,2,3)
+  //note: 0x
+  return drinkOrder; //probably 1, 2, or 3
 }
 
 

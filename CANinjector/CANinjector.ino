@@ -1,7 +1,7 @@
 //CANinjector: send whatever lovely CAN messages you want.
 //TODO: cry a little
-
-//drink orders that make sense: 
+//INPUT FORMAT: MSG_TYPE:msg
+//drink orders that make sense: 1, 2, 3, 129, 130, 131 (left)
 
 //stock messages that make sense:
 
@@ -12,8 +12,8 @@
 
 SquirtCanLib scl;
 
-int slavePin = 10;
-int interruptPin = 2;
+int slavePin = 48;
+int interruptPin = 49;
 char msg;
 
 void setup() {
@@ -26,7 +26,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println("setup done!");
   Serial.println("enter a message type, then a :, then the message char, to send it.");
-  Serial.println("example: DRINK_ORDER:100");
+  Serial.println("example: DRINK_ORDER:2");
 
 }
 
@@ -37,13 +37,15 @@ void loop() {
   //Serial.println(messageIn);
   //parse message type
 int msgType = parseType(messageIn); 
-
+Serial.println(msgType); 
   //parse message contents
   msg = parseContents(messageIn); 
-
+Serial.println((int) msg); 
+Serial.println("-----"); 
   //send msg
-
+  if(msgType < 1000){
       scl.sendMsg(msgType, msg);
+  }
 }
 
 int parseType(String msgIn) {
@@ -53,9 +55,10 @@ int parseType(String msgIn) {
   //get everything before that
   String msgType = msgIn.substring(0, colonIdx);
   
-  if (!(msgType.compareTo("DRINK_ORDER"))) //then they match! 
-    return SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER;
-
+  if (!(msgType.compareTo("DRINK_ORDER"))){//then they match! 
+      Serial.println("message type = DRINK ORDER");   
+     return SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER;
+  }
   if (!(msgType.compareTo("READY_TO_MOVE")))
     return SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE;
 
@@ -96,9 +99,11 @@ char parseContents(String msgIn){
   int colonIdx = msgIn.indexOf(':');
 
   //get the stuff after that
-  String contents = msgIn.substring(colonIdx+1);
+  String contents = msgIn.substring(colonIdx+1,colonIdx+2);
   //turn it to an int and then a char
-  char contentsChar = (char) (contents.toInt()); 
+  Serial.print("toInt:");
+  Serial.println(contents.toInt()); 
+  return (char) (contents.toInt()); 
 }
 
 void receivedMsgWrapper() {
