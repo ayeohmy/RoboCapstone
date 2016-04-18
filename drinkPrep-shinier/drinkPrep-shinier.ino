@@ -45,8 +45,8 @@ int valvePins[] = {11, 12, 13};
 int pressureSensorPin = 14;
 int compressorPin = 15;
 int ultrasoundPins[] = {16, 17}; //{trig, echo}
-int slavePin = 48;
-int interruptPin = 49;
+int slavePin = 53;
+int interruptPin = 21;
 
 
 //values we'll need to track

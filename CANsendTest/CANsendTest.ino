@@ -2,8 +2,8 @@
 
 SquirtCanLib scl;
 
-int slavePin = 10;
-int interruptPin = 2;
+int slavePin = 53;//53;
+int interruptPin = 21;//49;
 INT8U count = 0;
 INT8U count2 = 255;
 

@@ -12,8 +12,8 @@
 
 SquirtCanLib scl;
 
-int slavePin = 48;
-int interruptPin = 49;
+int slavePin = 53;
+int interruptPin = 21;
 char msg;
 
 void setup() {
@@ -46,6 +46,7 @@ Serial.println("-----");
   if(msgType < 1000){
       scl.sendMsg(msgType, msg);
   }
+  delay(500); 
 }
 
 int parseType(String msgIn) {

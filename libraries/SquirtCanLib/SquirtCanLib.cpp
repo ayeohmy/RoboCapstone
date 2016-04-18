@@ -18,7 +18,9 @@
 
 #define CAN_BAUD CAN_500KBPS
 
-MCP_CAN can(10); //Pointer to the can object
+//MCP_CAN can(48); //Pointer to the can object
+MCP_CAN can(53); //Pointer to the can object
+
 
 void SquirtCanLib::canSetup(INT8U slaveSelectPin) {
 	//*can = MCP_CAN(slaveSelectPin);

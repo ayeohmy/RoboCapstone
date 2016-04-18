@@ -2,8 +2,8 @@
 
 SquirtCanLib scl;
 
-int slavePin = 10;
-int interruptPin = 2;
+int slavePin = 53;
+int interruptPin = 21;
 
 void setup() {
   Serial.begin(9600);
