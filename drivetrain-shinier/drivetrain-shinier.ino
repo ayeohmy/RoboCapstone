@@ -32,7 +32,7 @@ enum Health {
 //pins to set
 int ultrasoundPins[5][2] = {{23, 24}, {25, 26}, {27, 28}, {29, 30}, {31, 32}};
 //{{trig1, echo1}, {trig2, echo2}, etc.}
-//order: fc, fl, fr, bc, br
+//order: fc, fl, fr, bl, br
 int encoderPins[4][2] = {{15, 16}, {17, 18}, {19, 20}, {33, 22}};
 //{{A1,B1},{A2,B2}, etc.}
 //order: f, l, r, b
@@ -93,27 +93,61 @@ void loop() {
 
   switch (state) {
     case STATIONARY:
-      { 
-        moving = false; 
-//serial input goes here!!! 
-
+      {
+        moving = false;
+        //serial input goes here!!!
+        //wait for message to change to MOVE state
+         char rtm = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE);
+  Serial.print("ready to move? ");
+  Serial.println((int) rtm); 
+  if (rtm) {
+    //if we just got an order, time to start preparing a drink!
+    state = MOVE;
+  }
         break;
       }
     case PREPTOMOVE:
       {
         stopMoving();
-        //look at front ultrasound! 
-      int frontRange = getRange(ultrasoundPins[0]); 
-       break;
+        //look at front ultrasound!
+        int frontRange = getRange(ultrasoundPins[0]);
+        break;
       }
     case MOVE:
       {
-        moving = true; 
-      //try to move forward for the specified time
+        moving = true;
+        //try to move forward for the specified time
+        //if necessary, pause until the thing in front of you moves
 
-      //if necessary, pause until the thing in front of you moves 
-       
-     
+        long lastTime = millis();
+        long currTime = lastTime;
+        long elapsedTime = 0;
+        double frontRange = getRange(ultrasoundPins[0]);
+        while (elapsedTime < motorTime) {
+          if (frontRange < 20) {
+            stopMoving();
+          } else {
+            double flRange = getRange(ultrasoundPins[1]);
+            double frRange = getRange(ultrasoundPins[2]);
+            double blRange = getRange(ultrasoundPins[3]);
+            double brRange = getRange(ultrasoundPins[4]);
+            if ((flRange < 7 || frRange < 7)  ||
+                (blRange < 7 || brRange < 7)) {
+              turnAccordingly(flRange, frRange, blRange, brRange);
+            } else {
+              //everything's fine
+              Serial.println("going forward...");
+              forward(motorSpeed);
+              currTime = millis();
+              elapsedTime = currTime - lastTime;
+              lastTime = currTime;
+            }
+
+          }
+        }
+        stopMoving(); 
+        moving = false; 
+        state = STATIONARY; 
         break;
       }
     case SIDECLOSE:
@@ -123,14 +157,14 @@ void loop() {
       }
     case STUCK:
       {
-       stopMoving(); 
+        stopMoving();
         break;
       }
     default:
       break;
   }//end state switch-statement
 
-  
+
 }
 
 
@@ -242,41 +276,28 @@ double getRange(int pins[]) {
   //speed of sound = 29.14 microseconds per centimeter
 }
 
-
-int forwardContinuously(long duration, int ults[][2], int numUlts){
-  double ranges[numUlts]; 
-   for(int i = 0; i < numUlts; i++){
-    ranges[i] = getRange(ults[i]);
-   }
-  long timecheck0 = millis();
-  long timecheck = timecheck0;
-bool safe = true; 
-  while (timecheck - timecheck0 < motorTime){
-    
-    //check le ultrasounds    
-    for(int i = 0; i < numUlts; i++){
-    ranges[i] = getRange(ults[i]);
-   }
-    forward(motorSpeed);
-
-    delay(25); //so we don't loop too tightly
-    timecheck = millis();
-    
-    for(int i = 0; i < numUlts; i++){
-    ranges[i] = getRange(ults[i]);
-   }
-
-    char cmd = Serial.read();
-    if (cmd == ' ') {
-      //STOP....
-      Serial.println("STOPPIN");
-      drinkDist = maxDrinkDist;
+void turnAccordingly(double flRange, double frRange,
+                     double blRange, double brRange) {
+  if (flRange < 7) {
+    if (blRange < 7) {
+      //strafe right if you're close on the whole left
+      strafe(motorSpeed);
+    } else {
+      turn(motorSpeed);
+    }
+  }
+  if (frRange < 7) {
+    if (brRange < 7) {
+      //strafe left if you're close on the whole right
+      strafe(-motorSpeed);
+    } else {
+      turn(-motorSpeed);
     }
   }
 
-  return 0; 
-}
 
+
+}
 /******* CAN NETWORK MESSAGE HELPERS *******/
 
 
