@@ -22,17 +22,17 @@
 
 
 #include <LiquidCrystal.h>
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2); //these are the lcd pins.
+LiquidCrystal lcd(14, 15, 10, 11, 12, 13); //these are the lcd pins.
 //(RS,enable, D4,D5,D6,D7)
-//(4, 6, 11,12,13,14)
-int buttonPins[] = {8, 7, 6};
+
+int buttonPins[] = {22, 23, 24};
 int buttonStates[] = {0, 0, 0};
 
 //all pins are the same for each LED color because
 //we want to use an Uno, dangit
-int led1Pins[] = {13, 14, 15}; //R,G,B
-int led2Pins[] = {13, 14, 15}; //R,G,B
-int led3Pins[] = {13, 14, 15}; //R,G,B
+int led1Pins[] = {28, 29, 30}; //R,G,B
+int led2Pins[] = {31, 32, 33}; //R,G,B
+int led3Pins[] = {34, 35, 36}; //R,G,B
 
 //for setting LED colors
 const int GREEN[] = {0, 255, 0};

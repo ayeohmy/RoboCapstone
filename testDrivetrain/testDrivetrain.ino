@@ -32,7 +32,7 @@
 int ultrasoundPins[5][2] = {{23,24}, {25,26}, {27,28}, {29,30}, {31,32}};
 //{{trig1, echo1}, {trig2, echo2}, etc.}
 //order: fc, fl, fr, bc, br
-int encoderPins[4][2] = {{15,16}, {17,18}, {19,20}, {21,22}};
+int encoderPins[4][2] = {{15,16}, {17,18}, {19,20}, {33,22}};
 //{{A1,B1},{A2,B2}, etc.}
 //order: f, l, r, b
 int motorPins[4][3] = {{2,7,3}, {4,8,9}, {5,12,10},{6,13,11}};
@@ -41,7 +41,7 @@ int motorPins[4][3] = {{2,7,3}, {4,8,9}, {5,12,10},{6,13,11}};
 
 
 int motorSpeed = 100; // range: 0 to 255
-int motorTime = 5000; //ms to drive
+int motorTime = 1000; //ms to drive
 
 void setup() {
   // put your setup code here, to run once:
@@ -117,6 +117,7 @@ void loop() {
 
     case 'i': {
         //forward
+        Serial.println("continuous fwd"); 
         runContinuously('w');
         break;
       }
@@ -151,23 +152,54 @@ void loop() {
 
     case '1': {
         //slowest
-        motorSpeed = 50;
+        Serial.println("speed: 10");
+        motorSpeed = 10;
         break;
       }
     case '2': {
-        motorSpeed = 100;
+        Serial.println("speed: 25");
+        motorSpeed = 25;
         break;
       }
     case '3': {
-        motorSpeed = 150;
+        Serial.println("speed: 50");
+        motorSpeed = 50;
         break;
       }
     case '4': {
-        motorSpeed = 200;
+        Serial.println("speed: 75");
+        motorSpeed = 75;
         break;
       }
     case '5': {
-        motorSpeed = 250;
+        Serial.println("speed: 100");
+        motorSpeed = 100;
+        break;
+      }
+          case '6': {
+        Serial.println("speed: 125");
+        //slowest
+        motorSpeed = 125;
+        break;
+      }
+    case '7': {
+        Serial.println("speed: 150");
+        motorSpeed = 150;
+        break;
+      }
+    case '8': {
+        Serial.println("speed: 175");
+        motorSpeed = 175;
+        break;
+      }
+    case '9': {
+        Serial.println("speed: 200");
+        motorSpeed = 200;
+        break;
+      }
+    case '0': {
+        Serial.println("speed: 225");
+        motorSpeed = 225;
         break;
       }
 
@@ -200,7 +232,7 @@ void loop() {
 
 
 void forward(int spd) {
-  setMotor(motorPins[1], spd);
+  setMotor(motorPins[1], -spd);
   setMotor(motorPins[2], spd);
 
 }
@@ -211,14 +243,14 @@ void back(int spd) {
 
 void strafe(int spd) {
   //strafe right or left. positive == right, negative == left
-  setMotor(motorPins[0], spd);
+  setMotor(motorPins[0], -spd);
   setMotor(motorPins[3], spd);
 }
 
 void turn (int spd) {
   //currently rotating with the front and back wheels only. is this okay?
-  setMotor(motorPins[0], spd);
-  setMotor(motorPins[3], spd);
+  setMotor(motorPins[0], -spd);
+  setMotor(motorPins[3], -spd);
 }
 
 void stopMoving() {
@@ -243,8 +275,8 @@ int runContinuously(char dir) {
         //forward
         pins1[0] = ultrasoundPins[0][0];
         pins1[1] = ultrasoundPins[0][1];
-        pins2[0] = 0; //just look in front
-        pins2[1] = 0;
+        pins2[0] = ultrasoundPins[0][0];
+        pins2[1] = ultrasoundPins[0][1];
         break;
       }
     case 'q': {
@@ -331,7 +363,11 @@ int runContinuously(char dir) {
     }
     range1 = getRange(pins1);
     range2 = getRange(pins2);
-
+    Serial.print("ranges: ");
+    Serial.print(range1);
+    Serial.print(", "); 
+    Serial.println(range2); 
+    
     char cmd = Serial.read();
     if (cmd == ' ') {
       //STOP....

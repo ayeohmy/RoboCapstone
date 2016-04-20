@@ -176,7 +176,15 @@ void loop() {
     //update stocks
     stock[3] = stock[3] - 1; //less one cup
     stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
-    //go back to waiting
+
+    //update health
+    if(stock[3] <= 0){
+      health = NOCUPS; 
+    }
+    if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)){
+      health = NODRINKS;
+    }
+    //update state; go back to waiting
     state = WAITING;
   Serial.println("drink done!"); 
   } else { //state must be WAITING

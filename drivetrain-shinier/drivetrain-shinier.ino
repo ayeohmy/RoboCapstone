@@ -1,0 +1,321 @@
+//drivetrain-shinier.ino: so shiny drivetrain!!!
+
+/*TODO:
+   Timers
+   motor control
+   ultrasound listening
+   encoder listening?
+   stateflow
+   write timer callbacks
+
+
+*/
+
+//things to include
+#include <SquirtCanLib.h>
+#include <SimpleTimer.h>
+
+enum States {
+  STATIONARY,
+  PREPTOMOVE,
+  MOVE,
+  SIDECLOSE,
+  STUCK
+};
+
+enum Health {
+  FINE,
+  HEALTH_STUCK
+};
+
+
+//pins to set
+int ultrasoundPins[5][2] = {{23, 24}, {25, 26}, {27, 28}, {29, 30}, {31, 32}};
+//{{trig1, echo1}, {trig2, echo2}, etc.}
+//order: fc, fl, fr, bc, br
+int encoderPins[4][2] = {{15, 16}, {17, 18}, {19, 20}, {33, 22}};
+//{{A1,B1},{A2,B2}, etc.}
+//order: f, l, r, b
+int motorPins[4][3] = {{2, 7, 3}, {4, 8, 9}, {5, 12, 10}, {6, 13, 11}};
+//{{INA1, INB1, PWM1}, {INA2, INB2, PWN2}, etc.}
+//order: f, l, r, b
+int slavePin = 53;
+int interruptPin = 21;
+
+
+//values we'll need to track
+bool moving; //moving or not????
+char atRow = 0; //if the row number exceeds 255 then we're in trouble/a huge plane
+States state = STATIONARY;
+Health health = FINE;
+char msg;
+
+//other constants to set
+int motorSpeed = 100; // range: 0 to 255
+int motorTime = 1000; //ms to drive
+
+//objects to construct
+SimpleTimer timer;
+SquirtCanLib scl;
+
+
+void setup() {
+  // set up motors
+
+  //set up ultrasounds
+
+  //set up encoders?
+
+  //set up CAN
+  scl.canSetup(slavePin); //pass in slave select pin
+  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
+
+
+
+  //set up timers, one for each message
+  timer.setInterval(25, movingUpdate);
+  timer.setInterval(50, atRowUpdate);
+  timer.setInterval(100, driveHealthUpdate);
+
+
+  Serial.begin(9600);
+  Serial.println("drivetrain setup done.");
+
+}
+
+void loop() {
+
+  /*** things to always do ***/
+
+
+  /*** things to sometimes do, depending on state ***/
+
+  switch (state) {
+    case STATIONARY:
+      { 
+        moving = false; 
+//serial input goes here!!! 
+
+        break;
+      }
+    case PREPTOMOVE:
+      {
+        stopMoving();
+        //look at front ultrasound! 
+      int frontRange = getRange(ultrasoundPins[0]); 
+       break;
+      }
+    case MOVE:
+      {
+        moving = true; 
+      //try to move forward for the specified time
+
+      //if necessary, pause until the thing in front of you moves 
+       
+     
+        break;
+      }
+    case SIDECLOSE:
+      {
+
+        break;
+      }
+    case STUCK:
+      {
+       stopMoving(); 
+        break;
+      }
+    default:
+      break;
+  }//end state switch-statement
+
+  
+}
+
+
+
+
+/*
+
+ * * * * * HELPER FUNCTIONS
+
+*/
+
+
+/******** DRIVING HELPERS *********/
+
+
+
+/*forward(SPD): drive forward with the specified speed (SPD).
+   giving a negative value makes it go backwards.
+   SPD is in the interval [-255 255].
+*/
+void forward(int spd) {
+  setMotor(motorPins[1], -spd);
+  setMotor(motorPins[2], spd);
+
+}
+
+/*back(SPD): drive backwards with the specified speed (SPD).
+   just a wrapper around going forwards with negative input.
+     SPD is in the interval [-255 255].
+*/
+void back(int spd) {
+  forward(-spd);
+}
+
+/*strafe(SPD): strafe with the specified speed (SPD).
+   positive speed strafes right, negative speed strafes left.
+    SPD is in the interval [-255 255].
+*/
+void strafe(int spd) {
+  //strafe right or left. positive == right, negative == left
+  setMotor(motorPins[0], -spd);
+  setMotor(motorPins[3], spd);
+}
+
+/*turn(SPD): turns with the specified speed (SPD).
+   positive speed turns right, negative speed turns left.
+    SPD is in the interval [-255 255].
+*/
+void turn (int spd) {
+  //currently rotating with the front and back wheels only.
+  setMotor(motorPins[0], -spd);
+  setMotor(motorPins[3], -spd);
+}
+
+/*stopMoving(): stop all motors from moving.
+*/
+void stopMoving() {
+  setMotor(motorPins[0], 0);
+  setMotor(motorPins[1], 0);
+  setMotor(motorPins[2], 0);
+  setMotor(motorPins[3], 0);
+
+}
+
+/*setMotor(PINS,SPD): set the linear actuator motor to go the
+   specified speed.
+   input format: speed (+- int), pins ({inA,inB,pwm})
+    SPD is in the interval [-255 255].
+*/
+void setMotor(int pins[], int spd) {
+
+  if (spd >= 0) {
+    //go forward. for the linear actuator, this is counterclockwise.
+    digitalWrite(pins[0], LOW);
+    digitalWrite(pins[1], HIGH);
+    analogWrite(pins[2], (byte)spd);
+  } else {
+    //go backward
+    digitalWrite(pins[0], HIGH);
+    digitalWrite(pins[1], LOW);
+    analogWrite(pins[2], (byte)(-spd));
+  }
+}
+
+/*getRange(PINS): gets the range measurement from the
+  ultrasound sensor denoted by PINS. PINS is a two-element
+  array {t,e}, where t is the pin no. for the TRIG pin and
+  e is the pin no. of the ECHO pin for this sensor.
+*/
+double getRange(int pins[]) {
+  int trigPin = pins[0];
+  int echoPin = pins[1];
+
+  //get a range measurement, in cm, from an ultrasound sensor
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  //default timeout is 1 second. i moved it up to 0.5?
+  // Serial.println(duration);
+  double dist = (duration / 2.0) / 29.14;
+  return dist;
+  // Serial.println(dist);
+  //duration (in microseconds) is divided by two
+  //because it gives the time to get there and back.
+  //speed of sound = 29.14 microseconds per centimeter
+}
+
+
+int forwardContinuously(long duration, int ults[][2], int numUlts){
+  double ranges[numUlts]; 
+   for(int i = 0; i < numUlts; i++){
+    ranges[i] = getRange(ults[i]);
+   }
+  long timecheck0 = millis();
+  long timecheck = timecheck0;
+bool safe = true; 
+  while (timecheck - timecheck0 < motorTime){
+    
+    //check le ultrasounds    
+    for(int i = 0; i < numUlts; i++){
+    ranges[i] = getRange(ults[i]);
+   }
+    forward(motorSpeed);
+
+    delay(25); //so we don't loop too tightly
+    timecheck = millis();
+    
+    for(int i = 0; i < numUlts; i++){
+    ranges[i] = getRange(ults[i]);
+   }
+
+    char cmd = Serial.read();
+    if (cmd == ' ') {
+      //STOP....
+      Serial.println("STOPPIN");
+      drinkDist = maxDrinkDist;
+    }
+  }
+
+  return 0; 
+}
+
+/******* CAN NETWORK MESSAGE HELPERS *******/
+
+
+/*movingUpdate(): update the moving status on the CAN network
+*/
+void movingUpdate() {
+  char movingMsg = (char) moving;
+}
+
+/*atRowUpdate(): update the row status on the CAN network
+*/
+void atRowUpdate() {
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW, atRow);
+}
+
+
+/*driveHealthUpdate(): update the drive health on the CAN network
+*/
+void driveHealthUpdate() {
+  char healthMsg = 0; //this is FINE
+  if (health == HEALTH_STUCK) {
+    healthMsg = SquirtCanLib::ERROR_STUCK;
+  }
+
+  scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRIVE_HEALTH, healthMsg);
+}
+
+/*receivedMsgWrapper(): wrapper for receiving messages over
+   the CAN network.
+*/
+void receivedMsgWrapper() {
+  //put one of these in -every- sketch for an arduino with a CAN chip.
+  //we have to do it this way because there are some issues with calling
+  //a function of an object that may or may not exist.
+  scl.receivedMsg();
+}
+
+
+
+
+
+
