@@ -125,4 +125,8 @@ void SquirtCanLib::receivedMsg() {
 			break;
 	}
 }
+
+INT8U SquirtCanLib::checkErr() {
+	return can.checkError(); 
+}
  

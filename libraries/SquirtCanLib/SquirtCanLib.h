@@ -100,6 +100,11 @@ class SquirtCanLib
 		 */
 		void receivedMsg();
 		
+		/* Function to just read the error from the base CAN library. 
+		 *
+		 *
+		 */
+		INT8U checkErr();
 	private:
 		/*
 		 * Variables representing the local can mailboxes
