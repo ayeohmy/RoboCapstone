@@ -66,8 +66,10 @@ int motorTime = 500; //ms
 int motorSpeed = 250; //0-255
 double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we stop
 
+int looptime;
+int lastLooptime; 
 
-
+bool sendRunning = false; 
 
 //objects to construct
 SimpleTimer timer;
@@ -100,13 +102,13 @@ void setup() {
 
   //set up CAN
   scl.canSetup(slavePin); //pass in slave select pin
-  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
-  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
+  pinMode(interruptPin, INPUT); //this pin is for the general interrupt line for the CAN chip
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, LOW);//used to be LOW. trying FALLING now.
   msg = 0;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, msg);
-
+  pinMode(49,OUTPUT);
 
   //set up timers, one for each message
   timer.setInterval(50, stockStatusUpdate);
@@ -119,7 +121,7 @@ void setup() {
 }
 
 void loop() {
-
+ // looptime = millis(); 
 
   /*** things to always do ****/
 
@@ -129,9 +131,9 @@ void loop() {
   //if the thing is low pressure, turn on the compressor
   //otherwise don't
   volatile int needPressure = digitalRead(pressureSensorPin);
-  //Serial.println(needPressure);
+ // Serial.println(needPressure);
   if (needPressure == 1) {
-    digitalWrite(compressorPin, HIGH);
+   digitalWrite(compressorPin, HIGH);
       //Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
@@ -139,10 +141,15 @@ void loop() {
   }
 
   //timer maintenance
+ // Serial.println("updating timer"); 
   timer.run();
 
+  
   //check if it's time to make a drink
+ // Serial.println("trying to get drink order..."); 
+ // digitalWrite(49,HIGH); 
   char drinkOrder = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER);
+ 
   Serial.print("drinkorder: ");
   Serial.println((int) drinkOrder); 
   if (drinkOrder != 0 && prevDrinkOrder == 0) {
@@ -169,7 +176,7 @@ void loop() {
     int whichDrink = parseOrder(drinkOrder);
 
     //dispense le drink based on order
-   // getCup();
+    getCup();
     Serial.println("cup retrieval done.");
     dispenseDrink(whichDrink);
     Serial.println("drink dispensing done.");
@@ -195,8 +202,12 @@ void loop() {
     //have no stock sensing....
 
     //so we'll do keyboard commands!
+    //digitalWrite(49,HIGH); 
     char keyIn = Serial.read();
-    //Serial.println(keyIn);
+    
+   // digitalWrite(49,LOW);
+  //  Serial.println(keyIn);
+    
     switch (keyIn) {
       case '0': {    
           Serial.println("close all");
@@ -323,7 +334,17 @@ void loop() {
 
     }
   }
-
+ // Serial.println("loop done"); 
+ /* lastLooptime = looptime; 
+  looptime = millis(); 
+  Serial.print("loop time:");
+  Serial.println(looptime - lastLooptime); 
+  */ 
+/*INT8U err = scl.checkErr(); 
+Serial.print("err: "); 
+Serial.print(err,BIN);
+Serial.print("\n"); 
+*/
 }
 
 
@@ -574,6 +595,8 @@ double getRange(int pins[]) {
 /*stockStatusUpdate(): update the stock status on the CAN network
 */
 void stockStatusUpdate() {
+//  Serial.println("updating stock status");
+  
   //pack the message
   char stockMsg = 0x00;
   if (stock[0] > 0 ) {
@@ -588,25 +611,34 @@ void stockStatusUpdate() {
   if (stock[3] > 0 ) {
     stockMsg = stockMsg | 0x10; //0001 0000
   } //else it's already at zeros
-
+ Serial.println("abt to send the stock stat msg...!"); 
+ sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, stockMsg);
+  sendRunning = false; 
+ // Serial.println("updated stock status"); 
 }
 
 
 /*prepStatusUpdate(): update the prep status on the CAN network
 */
 void prepStatusUpdate() {
+//  Serial.println("updating prep status"); 
   char statMsg = 0; //this is WAITING
   if (state == PREPARING) {
     statMsg = 1;
   }
+ Serial.println("abt to send the prep stat msg...!"); 
+ sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, statMsg);
+sendRunning = false; 
+//Serial.println("updated prep status"); 
 }
 
 
 /*prepHealthUpdate(): update the prep health on the CAN network
 */
 void prepHealthUpdate() {
+ // Serial.println("updating prep health"); 
   char healthMsg = 0; //this is FINE
   switch (health) {
     case NOCUPS:
@@ -618,7 +650,12 @@ void prepHealthUpdate() {
     default:
       break;
   }
+
+   Serial.println("abt to send the prep health msg...!"); 
+     sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, healthMsg);
+  sendRunning = false; 
+//Serial.println("updated prep health");
 }
 
 
@@ -644,7 +681,20 @@ void receivedMsgWrapper() {
   //put one of these in -every- sketch for an arduino with a CAN chip.
   //we have to do it this way because there are some issues with calling
   //a function of an object that may or may not exist.
+ // Serial.println("try receive"); 
+// digitalWrite(49,HIGH);
+if (!sendRunning){ 
   scl.receivedMsg();
+}
+ /*int err = scl.checkErr(); 
+ if (err == 0){
+   digitalWrite(49,LOW); 
+ } else {
+   digitalWrite(49,HIGH); 
+ }
+ */ 
+ //digitalWrite(49,LOW); 
+ //sendRunning = false; 
 }
 
 
