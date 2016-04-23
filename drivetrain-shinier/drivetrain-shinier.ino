@@ -1,4 +1,9 @@
 //drivetrain-shinier.ino: so shiny drivetrain!!!
+/*current status: only STATIONARY and MOVE are real states. 
+PREPMOVE and SIDECLOSE have been bundled into move and it's 
+easier this way
+STUCK needs to be a thing, it just isn't yet
+*/
 
 /*TODO:
    Timers
@@ -30,7 +35,9 @@ enum Health {
 
 
 //pins to set
-int ultrasoundPins[5][2] = {{23, 24}, {25, 26}, {27, 28}, {29, 30}, {31, 32}};
+//int ultrasoundPins[5][2] = {{23, 24}, {25, 26}, {27, 28}, {29, 30}, {31, 32}};
+int ultrasoundPins[5][2] = {{31,32}, {23,24}, {25,26}, {27,28}, {29,30}, };
+
 //{{trig1, echo1}, {trig2, echo2}, etc.}
 //order: fc, fl, fr, bl, br
 int encoderPins[4][2] = {{15, 16}, {17, 18}, {19, 20}, {33, 22}};
@@ -50,9 +57,11 @@ States state = STATIONARY;
 Health health = FINE;
 char msg;
 
+bool sendRunning = false; 
+
 //other constants to set
 int motorSpeed = 100; // range: 0 to 255
-int motorTime = 1000; //ms to drive
+int motorTime = 4000; //ms to drive
 
 //objects to construct
 SimpleTimer timer;
@@ -61,15 +70,23 @@ SquirtCanLib scl;
 
 void setup() {
   // set up motors
-
+ for (int i = 0; i < 4; i++) {
+    pinMode(motorPins[i][0], OUTPUT);
+    pinMode(motorPins[i][1], OUTPUT);
+    pinMode(motorPins[i][2], OUTPUT);
+ }
   //set up ultrasounds
-
+   for (int i = 0; i < 5; i++) {
+    pinMode(ultrasoundPins[i][0], OUTPUT);
+    pinMode(ultrasoundPins[i][1], INPUT);
+  }
+  
   //set up encoders?
 
   //set up CAN
   scl.canSetup(slavePin); //pass in slave select pin
-  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
-  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
+  pinMode(interruptPin, INPUT); //this pin is for the general interrupt line for the CAN chip
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, LOW);
 
 
 
@@ -96,6 +113,12 @@ void loop() {
       {
         moving = false;
         //serial input goes here!!!
+  char cmd = Serial.read();
+  if(cmd == 'd'){
+    state = MOVE; 
+    Serial.println("move yeaaaaa"); 
+  }
+        
         //wait for message to change to MOVE state
          char rtm = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE);
   Serial.print("ready to move? ");
@@ -118,19 +141,27 @@ void loop() {
         moving = true;
         //try to move forward for the specified time
         //if necessary, pause until the thing in front of you moves
-
+        Serial.println("moving!!! wheee"); 
         long lastTime = millis();
         long currTime = lastTime;
         long elapsedTime = 0;
         double frontRange = getRange(ultrasoundPins[0]);
+        //Serial.print("frontrange: ");
+        //Serial.println(frontRange); 
         while (elapsedTime < motorTime) {
-          if (frontRange < 20) {
+          frontRange = getRange(ultrasoundPins[0]);
+        Serial.print("frontrange: ");
+        Serial.println(frontRange); 
+          if (frontRange < 10) {
             stopMoving();
+            Serial.println("stopped"); 
+             currTime = millis();
+            lastTime = currTime;
           } else {
-            double flRange = getRange(ultrasoundPins[1]);
-            double frRange = getRange(ultrasoundPins[2]);
-            double blRange = getRange(ultrasoundPins[3]);
-            double brRange = getRange(ultrasoundPins[4]);
+            double flRange = 50;//getRange(ultrasoundPins[1]);
+            double frRange = 50;//getRange(ultrasoundPins[2]);
+            double blRange = 50; //getRange(ultrasoundPins[3]);
+            double brRange = 50; //getRange(ultrasoundPins[4]);
             if ((flRange < 7 || frRange < 7)  ||
                 (blRange < 7 || brRange < 7)) {
               turnAccordingly(flRange, frRange, blRange, brRange);
@@ -139,14 +170,19 @@ void loop() {
               Serial.println("going forward...");
               forward(motorSpeed);
               currTime = millis();
-              elapsedTime = currTime - lastTime;
+              elapsedTime += currTime - lastTime;
               lastTime = currTime;
+              Serial.print("elapsed time:"); 
+              Serial.println(elapsedTime); 
             }
 
           }
+         
+          delay(10); //to slow things down a bit
         }
         stopMoving(); 
         moving = false; 
+        atRow++; 
         state = STATIONARY; 
         break;
       }
@@ -304,13 +340,19 @@ void turnAccordingly(double flRange, double frRange,
 /*movingUpdate(): update the moving status on the CAN network
 */
 void movingUpdate() {
+  
   char movingMsg = (char) moving;
+  sendRunning = true;
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_MOVING, movingMsg);
+  sendRunning = false;
 }
 
 /*atRowUpdate(): update the row status on the CAN network
 */
 void atRowUpdate() {
+  sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW, atRow);
+  sendRunning = false; 
 }
 
 
@@ -321,8 +363,9 @@ void driveHealthUpdate() {
   if (health == HEALTH_STUCK) {
     healthMsg = SquirtCanLib::ERROR_STUCK;
   }
-
+sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRIVE_HEALTH, healthMsg);
+sendRunning = false; 
 }
 
 /*receivedMsgWrapper(): wrapper for receiving messages over
@@ -332,7 +375,9 @@ void receivedMsgWrapper() {
   //put one of these in -every- sketch for an arduino with a CAN chip.
   //we have to do it this way because there are some issues with calling
   //a function of an object that may or may not exist.
+  if (!sendRunning){ 
   scl.receivedMsg();
+}
 }
 
 
