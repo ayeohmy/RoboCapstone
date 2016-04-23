@@ -1,11 +1,8 @@
 //drinkPrep-shinier.ino: so shiny drink prep!!!
 
 /*TODO:
-  Timers
-  cups
-  pneumatics
-  stateflow
-  write timer callbacks
+  fix it so you can order a drink when the compressor is on!!!!! 
+  
 
 */
 
@@ -50,12 +47,12 @@ int interruptPin = 21;
 
 
 //values we'll need to track
-int stock[] = {1, 1, 1, 1}; //{d1, d2, d3, cups}
+int stock[] = {10, 10, 10, 30}; //{d1, d2, d3, cups}
 char msg;
 States state = WAITING;
 Health health = FINE;
 char prevDrinkOrder = 0;
-
+bool sendRunning = false; 
 
 
 //other constants to set
@@ -69,7 +66,6 @@ double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we sto
 int looptime;
 int lastLooptime; 
 
-bool sendRunning = false; 
 
 //objects to construct
 SimpleTimer timer;
@@ -103,7 +99,7 @@ void setup() {
   //set up CAN
   scl.canSetup(slavePin); //pass in slave select pin
   pinMode(interruptPin, INPUT); //this pin is for the general interrupt line for the CAN chip
-  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, LOW);//used to be LOW. trying FALLING now.
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, LOW);
   msg = 0;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
@@ -133,7 +129,7 @@ void loop() {
   volatile int needPressure = digitalRead(pressureSensorPin);
  // Serial.println(needPressure);
   if (needPressure == 1) {
-   digitalWrite(compressorPin, HIGH);
+   //digitalWrite(compressorPin, HIGH);
       //Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
@@ -158,8 +154,11 @@ void loop() {
   }
 
   prevDrinkOrder = drinkOrder;
-
-
+Serial.print("state:");
+Serial.println(state);
+   msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
+       Serial.print("at row:"); 
+      Serial.println((int) msg);
 
   /*** things to sometimes do, depending on state ***/
 
@@ -172,7 +171,7 @@ void loop() {
     Serial.println("prepping a drink!"); 
     //parse le drink order
     //FOR NOW: fake drink order to 2
-    drinkOrder = 2; 
+    //drinkOrder = 2; 
     int whichDrink = parseOrder(drinkOrder);
 
     //dispense le drink based on order

@@ -19,7 +19,7 @@ void loop() {
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER, count);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, count2);
   Serial.println("Sent");
-  delay(1000);
+  delay(2000);
   count++;
   count2--;
 }

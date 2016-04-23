@@ -105,8 +105,11 @@ void loop() {
 
   /*** things to always do ***/
 
-
+  Serial.print("at row "); 
+  Serial.println((int)atRow); 
   /*** things to sometimes do, depending on state ***/
+
+timer.run(); 
 
   switch (state) {
     case STATIONARY:
@@ -350,9 +353,12 @@ void movingUpdate() {
 /*atRowUpdate(): update the row status on the CAN network
 */
 void atRowUpdate() {
+  //Serial.println("updated atRow"); 
   sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW, atRow);
   sendRunning = false; 
+  
+  Serial.println("updated atRow"); 
 }
 
 

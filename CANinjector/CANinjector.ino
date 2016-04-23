@@ -41,11 +41,13 @@ Serial.println(msgType);
   //parse message contents
   msg = parseContents(messageIn); 
 Serial.println((int) msg); 
-Serial.println("-----"); 
+
   //send msg
-  if(msgType < 1000){
+  if(msgType < 1000 && msgType >= 0 ){
       scl.sendMsg(msgType, msg);
+      Serial.println("sent message!");
   }
+  Serial.println("-----"); 
   delay(500); 
 }
 

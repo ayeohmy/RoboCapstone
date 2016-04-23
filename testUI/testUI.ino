@@ -21,6 +21,14 @@
 */
 
 
+#include <SquirtCanLib.h>
+
+SquirtCanLib scl;
+
+int slavePin = 53;
+int interruptPin = 21;
+char msg;
+
 #include <LiquidCrystal.h>
 LiquidCrystal lcd(14, 15, 10, 11, 12, 13); //these are the lcd pins.
 //(RS,enable, D4,D5,D6,D7)
@@ -47,11 +55,17 @@ void setup() {
   // put your setup code here, to run once:
   lcd.begin(16, 2); // it's a 16x2 lcd
   for (int i = 0; i < 3; i++) {
-    //  pinMode(led1Pins[i], OUTPUT);
-    //  pinMode(led2Pins[i], OUTPUT);
-    //  pinMode(led3Pins[i], OUTPUT);
+      pinMode(led1Pins[i], OUTPUT);
+      pinMode(led2Pins[i], OUTPUT);
+      pinMode(led3Pins[i], OUTPUT);
     pinMode(buttonPins[i], INPUT);
   }
+
+
+  scl.canSetup(slavePin); //pass in slave select pin
+  pinMode(interruptPin, OUTPUT); //this pin is for the general interrupt line for the CAN chip
+  attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, RISING);
+
 
   //Serial.setTimeout(500); //to make things a bit faster
   Serial.begin(9600);
@@ -78,18 +92,25 @@ void loop() {
   if (!buttonStates[0]) {
     panelDisplay("beep booooop", "button 1- red!", RED, RED, RED);
     Serial.println("button 1");
+      scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER,(char) 1); 
   }
   if (!buttonStates[1]) {
     panelDisplay("bleep blop?", "button 2- green!", GREEN, GREEN, GREEN);
     Serial.println("button 2");
+      scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER,(char) 2); 
+
   }
   if (!buttonStates[2]) {
         panelDisplay("boop bloop","button 3- white!",WHITE, WHITE, WHITE);
          Serial.println("button 3");
+           scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER,(char) 3); 
+
   } 
   
   if(buttonStates[2] && (buttonStates[0] && buttonStates[1])) {
     panelDisplay("beep boop", "*-*-*", BLACK, BLACK, BLACK);
+    scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER,(char) 0); 
+  
   }
 
   // lcd.setCursor(0, 1);
@@ -119,4 +140,13 @@ void panelDisplay(String line1, String line2, const int led1[], const int led2[]
     analogWrite(led2Pins[i], led1[i]);
     analogWrite(led3Pins[i], led1[i]);
   }
+}
+
+
+
+void receivedMsgWrapper() {
+  //put one of these in -every- sketch for an arduino with a CAN chip.
+  //we have to do it this way because there are some issues with calling
+  //a function of an object that may or may not exist.
+  scl.receivedMsg();
 }

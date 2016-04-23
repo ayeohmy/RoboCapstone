@@ -29,9 +29,9 @@
  * 
  */
 
-int ultrasoundPins[5][2] = {{23,24}, {25,26}, {27,28}, {29,30}, {31,32}};
+int ultrasoundPins[5][2] = {{31,32}, {23,24}, {25,26}, {27,28}, {29,30}, };
 //{{trig1, echo1}, {trig2, echo2}, etc.}
-//order: fc, fl, fr, bc, br
+//order: fc, fl, fr, bl, br
 int encoderPins[4][2] = {{15,16}, {17,18}, {19,20}, {33,22}};
 //{{A1,B1},{A2,B2}, etc.}
 //order: f, l, r, b
