@@ -22,6 +22,16 @@ enum States {
   PREPARING
 };
 
+enum PrepStates {
+  START,
+  GETCUP_UP,
+  GETCUP_OUT,
+  GETCUP_DOWN,
+  GETCUP_IN,
+  DISPENSE,
+  DONE
+};
+
 enum Health {
   FINE,
   NOCUPS,
@@ -50,10 +60,13 @@ int interruptPin = 21;
 int stock[] = {10, 10, 10, 30}; //{d1, d2, d3, cups}
 char msg;
 States state = WAITING;
+PrepStates prepState = START;
 Health health = FINE;
 char prevDrinkOrder = 0;
 bool sendRunning = false;
-
+int degsSoFar = 0;
+long timecheck0 = 0;
+long timecheck = 0;
 
 //other constants to set
 int degsUp = 180;
@@ -176,25 +189,124 @@ void loop() {
     //drinkOrder = 2;
     int whichDrink = parseOrder(drinkOrder);
 
-    //dispense le drink based on order
-    getCup();
-    Serial.println("cup retrieval done.");
-    dispenseDrink(whichDrink);
-    Serial.println("drink dispensing done.");
-    //update stocks
-    stock[3] = stock[3] - 1; //less one cup
-    stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
+    bool limSwitch = true;
+    switch (prepState) {
+      case START: {
+          prepState = GETCUP_UP;
+          break;
+        }
+      case GETCUP_UP: {
+          limSwitch = digitalRead(stackLimitSwitchPins[1]);
+          if (limSwitch) {
+            setStepper(60);
+            degsSoFar += 60;
+          } else {
+            prepState = GETCUP_OUT;
+            degsSoFar = 0;
+          }
+          break;
+        }
+      case GETCUP_OUT: {
+          limSwitch = digitalRead(grabberLimitSwitchPins[1]);
+          if (limSwitch) {
+            setMotor(grabberMotorPins, motorSpeed);
+          }  else {
+            setMotor(grabberMotorPins, 0);
+            prepState = GETCUP_DOWN;
+          }
+          break;
+        }
+      case GETCUP_DOWN: {
+          limSwitch = digitalRead(stackLimitSwitchPins[0]);
+          if (degsSoFar < 3660) {
+            setStepper(-60);
+            degsSoFar += 60;
+          } else {
+            prepState = GETCUP_IN;
+            degsSoFar = 0;
+          }
+          break;
+        }
+      case GETCUP_IN: {
+          limSwitch = digitalRead(grabberLimitSwitchPins[0]);
+          if (limSwitch) {
+            setMotor(grabberMotorPins, -motorSpeed);
+          }  else {
+            setMotor(grabberMotorPins, 0);
+            prepState = DISPENSE;
+            timecheck0 = millis();
+            timecheck = timecheck0;
+          }
+          break;
+        }
+      case DISPENSE: {
+          double drinkDist = getRange(ultrasoundPins);
+          Serial.print("drink distance: ");
+          Serial.println(drinkDist);
+          if ((drinkDist > maxDrinkDist)
+              && (timecheck - timecheck0 < 5000)) {
+            openValve(whichDrink);
+            //delay(50); //so we don't loop too tightly
+            timecheck = millis();
+          } else {
+            closeValves();
+            prepState = DONE;
+          }
 
-    //update health
-    if (stock[3] <= 0) {
-      health = NOCUPS;
+          break;
+        }
+      case DONE: {
+          degsSoFar = 0;
+          prepState = START;
+          Serial.println("drink dispensing done.");
+          //update stocks
+          stock[3] = stock[3] - 1; //less one cup
+          stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
+
+          //update health
+          if (stock[3] <= 0) {
+            health = NOCUPS;
+          }
+          if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
+            health = NODRINKS;
+          }
+          //update state; go back to waiting
+          state = WAITING;
+          Serial.println("drink done!");
+          break;
+        }
+      default: {
+
+          break;
+        }
     }
-    if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
-      health = NODRINKS;
-    }
-    //update state; go back to waiting
-    state = WAITING;
-    Serial.println("drink done!");
+
+
+    /*
+     * 
+    //dispense le drink based on order
+       getCup();
+
+        Serial.println("cup retrieval done.");
+        dispenseDrink(whichDrink);
+        Serial.println("drink dispensing done.");
+        //update stocks
+        stock[3] = stock[3] - 1; //less one cup
+        stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
+
+        //update health
+        if (stock[3] <= 0) {
+          health = NOCUPS;
+        }
+        if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
+          health = NODRINKS;
+        }
+        //update state; go back to waiting
+        state = WAITING;
+        Serial.println("drink done!");
+
+
+    */
   } else { //state must be WAITING
     /*
        WAITING
