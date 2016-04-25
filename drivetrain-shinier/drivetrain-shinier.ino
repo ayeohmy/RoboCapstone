@@ -61,6 +61,10 @@ Health health = FINE;
 char msg;
 char prevRtm = 0;
 bool sendRunning = false;
+long lastTime = 0;
+long currTime = 0;
+long elapsedTime = 0;
+
 
 //other constants to set
 int motorSpeed = 100; // range: 0 to 255
@@ -94,9 +98,9 @@ void setup() {
 
 
   //set up timers, one for each message
- // timer.setInterval(25, movingUpdate);
- // timer.setInterval(50, atRowUpdate);
- // timer.setInterval(100, driveHealthUpdate);
+  // timer.setInterval(25, movingUpdate);
+  // timer.setInterval(50, atRowUpdate);
+  // timer.setInterval(100, driveHealthUpdate);
 
 
   Serial.begin(9600);
@@ -120,7 +124,7 @@ void loop() {
         //serial input goes here!!!
         char cmd = Serial.read();
         if (cmd == 'd') {
-          state = MOVE;
+          state = PREPTOMOVE;
           Serial.println("move yeaaaaa");
         }
 
@@ -130,16 +134,21 @@ void loop() {
         Serial.println((int) rtm);
         if (rtm && (prevRtm == 0)) {
           //if we just got an order, time to start preparing a drink!
-          state = MOVE;
+          state = PREPTOMOVE;
         }
         prevRtm = rtm;
         break;
       }
     case PREPTOMOVE:
       {
-        stopMoving();
-        //look at front ultrasound!
-        int frontRange = getRange(ultrasoundPins[0]);
+        /* stopMoving();
+          //look at front ultrasound!
+          int frontRange = getRange(ultrasoundPins[0]);
+        */
+        lastTime = millis();
+        currTime = lastTime;
+        elapsedTime = 0;
+        state = MOVE;
         break;
       }
     case MOVE:
@@ -148,14 +157,10 @@ void loop() {
         //try to move forward for the specified time
         //if necessary, pause until the thing in front of you moves
         Serial.println("moving!!! wheee");
-        long lastTime = millis();
-        long currTime = lastTime;
-        long elapsedTime = 0;
-        double frontRange = getRange(ultrasoundPins[0]);
+
         //Serial.print("frontrange: ");
         //Serial.println(frontRange);
-        while (elapsedTime < motorTime) {
-          timer.run(); //just in case
+        if (elapsedTime < motorTime) {
           frontRange = getRange(ultrasoundPins[0]);
           Serial.print("frontrange: ");
           Serial.println(frontRange);
@@ -184,14 +189,12 @@ void loop() {
             }
 
           }
-
-          delay(10); //to slow things down a bit
+        } else {
+          stopMoving();
+          moving = false;
+          atRow++;
+          state = STATIONARY;
         }
-        stopMoving();
-        moving = false;
-        atRow++;
-        state = STATIONARY;
-
         break;
       }
     case SIDECLOSE:
