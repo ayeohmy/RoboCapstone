@@ -22,6 +22,7 @@
 //things to include
 #include <SquirtCanLib.h>
 #include <SimpleTimer.h>
+#include <watchdog.h>
 
 enum States {
   STATIONARY,
@@ -95,12 +96,12 @@ void setup() {
   pinMode(interruptPin, INPUT); //this pin is for the general interrupt line for the CAN chip
   attachInterrupt(digitalPinToInterrupt(interruptPin), receivedMsgWrapper, LOW);
 
-
+  watchdog_init();
 
   //set up timers, one for each message
-  // timer.setInterval(25, movingUpdate);
-  // timer.setInterval(50, atRowUpdate);
-  // timer.setInterval(100, driveHealthUpdate);
+  timer.setInterval(25, movingUpdate);
+  timer.setInterval(50, atRowUpdate);
+  timer.setInterval(100, driveHealthUpdate);
 
 
   Serial.begin(9600);
@@ -116,6 +117,8 @@ void loop() {
   Serial.println((int)atRow);
   /*** things to sometimes do, depending on state ***/
   timer.run();
+
+  wdt_reset();
 
   switch (state) {
     case STATIONARY:

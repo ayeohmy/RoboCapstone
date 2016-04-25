@@ -14,6 +14,8 @@
 #include <SquirtCanLib.h>
 #include <SimpleTimer.h>
 #include <LiquidCrystal.h>
+#include <watchdog.h>
+
 #define RIGHT 0
 #define LEFT 1
 
@@ -89,6 +91,8 @@ void setup() {
   lcdL.begin(16, 2); // it's a 16x2 lcd
   //lcdR.begin(16,2);
 
+  watchdog_init();
+
   //set up LEDs and buttons
   for (int i = 0; i < 3; i++) {
     pinMode(led1PinsL[i], OUTPUT);
@@ -129,6 +133,8 @@ void loop() {
   }
 
   timer.run();
+
+  wdt_reset();
 
   /*** things to sometimes do, depending on state ***/
 
