@@ -124,7 +124,7 @@ void setup() {
   pinMode(grabberLimitSwitchPins[0], INPUT);
   pinMode(grabberLimitSwitchPins[1], INPUT);
 
-  //watchdog_init();
+  watchdog_init();
 
   //set up pneumatics
   pinMode(ultrasoundPins[0], OUTPUT);
@@ -161,7 +161,7 @@ void loop() {
 
   /*** things to always do ****/
 
-  //wdt_reset();
+  wdt_reset();
 
   //keep the system pressurized, always
   //if the thing is low pressure, turn on the compressor
@@ -228,6 +228,7 @@ void loop() {
           } else {
             prepState = GETCUP_OUT;
             degsSoFar = 0;
+            setStepper(-80);
           }
           break;
         }
