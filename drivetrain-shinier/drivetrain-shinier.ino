@@ -94,9 +94,9 @@ void setup() {
 
 
   //set up timers, one for each message
-  timer.setInterval(25, movingUpdate);
-  timer.setInterval(50, atRowUpdate);
-  timer.setInterval(100, driveHealthUpdate);
+ // timer.setInterval(25, movingUpdate);
+ // timer.setInterval(50, atRowUpdate);
+ // timer.setInterval(100, driveHealthUpdate);
 
 
   Serial.begin(9600);
