@@ -142,8 +142,6 @@ void loop() {
         Serial.print("at row:");
         Serial.println((int) msg);
 
-        Serial.print("CAN errors: ");
-        Serial.println(scl.checkErr(), BIN);
         //get stock status so we know what to show
 
 

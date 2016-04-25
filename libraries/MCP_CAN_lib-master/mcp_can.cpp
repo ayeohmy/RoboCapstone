@@ -791,7 +791,7 @@ INT8U MCP_CAN::checkReceive(void)
 *********************************************************************************************************/
 INT8U MCP_CAN::checkError(void)
 {
-    INT8U eflg = mcp2515_readRegister(MCP_REC);// mcp2515_readRegister(MCP_EFLG);
+    INT8U eflg = mcp2515_readRegister(MCP_EFLG);
 
     if ( eflg & MCP_EFLG_ERRORMASK ) 
     {
