@@ -1,8 +1,8 @@
 //drinkPrep-shinier.ino: so shiny drink prep!!!
 
 /*TODO:
-  fix it so you can order a drink when the compressor is on!!!!! 
-  
+  fix it so you can order a drink when the compressor is on!!!!!
+
 
 */
 
@@ -52,7 +52,7 @@ char msg;
 States state = WAITING;
 Health health = FINE;
 char prevDrinkOrder = 0;
-bool sendRunning = false; 
+bool sendRunning = false;
 
 
 //other constants to set
@@ -64,7 +64,7 @@ int motorSpeed = 250; //0-255
 double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we stop
 
 int looptime;
-int lastLooptime; 
+int lastLooptime;
 
 
 //objects to construct
@@ -104,20 +104,20 @@ void setup() {
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, msg);
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, msg);
-  pinMode(49,OUTPUT);
+  pinMode(49, OUTPUT);
 
   //set up timers, one for each message
   timer.setInterval(50, stockStatusUpdate);
   timer.setInterval(50, prepStatusUpdate);
   timer.setInterval(100, prepHealthUpdate);
- 
+
 
   Serial.begin(9600);
   Serial.println("drinkPrep setup done.");
 }
 
 void loop() {
- // looptime = millis(); 
+  // looptime = millis();
 
   /*** things to always do ****/
 
@@ -127,38 +127,40 @@ void loop() {
   //if the thing is low pressure, turn on the compressor
   //otherwise don't
   volatile int needPressure = digitalRead(pressureSensorPin);
- // Serial.println(needPressure);
+  // Serial.println(needPressure);
   if (needPressure == 1) {
-   //digitalWrite(compressorPin, HIGH);
-      //Serial.println("compressor ON");
+    //digitalWrite(compressorPin, HIGH);
+    //Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
-   //  Serial.println("compressor OFF");
+    //  Serial.println("compressor OFF");
   }
 
   //timer maintenance
- // Serial.println("updating timer"); 
+  // Serial.println("updating timer");
   timer.run();
 
-  
+
   //check if it's time to make a drink
- // Serial.println("trying to get drink order..."); 
- // digitalWrite(49,HIGH); 
+  // Serial.println("trying to get drink order...");
+  // digitalWrite(49,HIGH);
   char drinkOrder = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_DRINK_ORDER);
- 
+
   Serial.print("drinkorder: ");
-  Serial.println((int) drinkOrder); 
+  Serial.println((int) drinkOrder);
   if (drinkOrder != 0 && prevDrinkOrder == 0) {
     //if we just got an order, time to start preparing a drink!
     state = PREPARING;
   }
 
   prevDrinkOrder = drinkOrder;
-Serial.print("state:");
-Serial.println(state);
-   msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
-       Serial.print("at row:"); 
-      Serial.println((int) msg);
+  Serial.print("state:");
+  Serial.println(state);
+  msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
+  Serial.print("at row:");
+  Serial.println((int) msg);
+  Serial.print("CAN errors: ");
+  Serial.println(scl.checkErr(), BIN);
 
   /*** things to sometimes do, depending on state ***/
 
@@ -168,10 +170,10 @@ Serial.println(state);
     /*
        PREPARING
     */
-    Serial.println("prepping a drink!"); 
+    Serial.println("prepping a drink!");
     //parse le drink order
     //FOR NOW: fake drink order to 2
-    //drinkOrder = 2; 
+    //drinkOrder = 2;
     int whichDrink = parseOrder(drinkOrder);
 
     //dispense le drink based on order
@@ -184,15 +186,15 @@ Serial.println(state);
     stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
 
     //update health
-    if(stock[3] <= 0){
-      health = NOCUPS; 
+    if (stock[3] <= 0) {
+      health = NOCUPS;
     }
-    if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)){
+    if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
       health = NODRINKS;
     }
     //update state; go back to waiting
     state = WAITING;
-  Serial.println("drink done!"); 
+    Serial.println("drink done!");
   } else { //state must be WAITING
     /*
        WAITING
@@ -201,14 +203,14 @@ Serial.println(state);
     //have no stock sensing....
 
     //so we'll do keyboard commands!
-    //digitalWrite(49,HIGH); 
+    //digitalWrite(49,HIGH);
     char keyIn = Serial.read();
-    
-   // digitalWrite(49,LOW);
-  //  Serial.println(keyIn);
-    
+
+    // digitalWrite(49,LOW);
+    //  Serial.println(keyIn);
+
     switch (keyIn) {
-      case '0': {    
+      case '0': {
           Serial.println("close all");
           closeValves();
           break;
@@ -220,83 +222,83 @@ Serial.println(state);
         }
       case '2': {
           Serial.println("open 2");
-                    openValve(2);
+          openValve(2);
           break;
         }
       case '3': {
-   
+
           Serial.println("open 3");
-                 openValve(3);
+          openValve(3);
           break;
         }
       case '4': {
           //dispense drink 1
-                    Serial.println("dispense drink 1");
+          Serial.println("dispense drink 1");
           dispenseDrink(1);
           break;
         }
       case '5': {
           //dispense drink 2
           Serial.println("dispense drink 2");
-                    dispenseDrink(2);
+          dispenseDrink(2);
           break;
         }
       case '6': {
           //dispense drink 3
           Serial.println("dispense drink 3");
-                    dispenseDrink(3);
+          dispenseDrink(3);
           break;
         }
       case 'w': {
           Serial.println("stack up ");
-              setStepper(degsUp);
+          setStepper(degsUp);
           break;
         }
       case 'a': {
-  Serial.println("grabber in");
-           setMotor(grabberMotorPins, -motorSpeed);
-      delay(motorTime);
-      setMotor(grabberMotorPins, 0);        
+          Serial.println("grabber in");
+          setMotor(grabberMotorPins, -motorSpeed);
+          delay(motorTime);
+          setMotor(grabberMotorPins, 0);
           break;
         }
       case 's': {
-               Serial.println("stack down");
+          Serial.println("stack down");
           setStepper(-degsDown);
-   
+
           break;
         }
       case 'd': {
 
           Serial.println("grabber out");
           setMotor(grabberMotorPins, motorSpeed);
-      delay(motorTime);
-      setMotor(grabberMotorPins, 0);
+          delay(motorTime);
+          setMotor(grabberMotorPins, 0);
           break;
         }
 
       case 'i': {
-        Serial.println("stepping up");
+          Serial.println("stepping up");
           //stepper run up continuously
           int howfar = runContinuously(1, STEPPER);
           break;
         }
       case 'k': {
-               Serial.println("stepping down");
+          Serial.println("stepping down");
           //stepper run down continuously
           runContinuously(-1, STEPPER);
-   
+
           break;
         }
       case 'j': {
           //grabber run in continuously
           Serial.println("grabbing in");
           runContinuously(-1, LINEAR);
-          
+
           break;
         }
       case 'l': {
           //grabber run out continuously
-          Serial.println("grabbing out"); 
+          Serial.println("grabbing out");
           runContinuously(1, LINEAR);
           break;
         }
@@ -319,13 +321,13 @@ Serial.println(state);
         }
       case 'g': {
           //get a cup
-          Serial.println("getting a cup...!" ); 
+          Serial.println("getting a cup...!" );
           getCup();
           break;
         }
-        case 'p':{
-          Serial.println("switching state to PREPARING"); 
-          state = PREPARING; 
+      case 'p': {
+          Serial.println("switching state to PREPARING");
+          state = PREPARING;
           break;
         }
       default:
@@ -333,17 +335,17 @@ Serial.println(state);
 
     }
   }
- // Serial.println("loop done"); 
- /* lastLooptime = looptime; 
-  looptime = millis(); 
-  Serial.print("loop time:");
-  Serial.println(looptime - lastLooptime); 
-  */ 
-/*INT8U err = scl.checkErr(); 
-Serial.print("err: "); 
-Serial.print(err,BIN);
-Serial.print("\n"); 
-*/
+  // Serial.println("loop done");
+  /* lastLooptime = looptime;
+    looptime = millis();
+    Serial.print("loop time:");
+    Serial.println(looptime - lastLooptime);
+  */
+  /*INT8U err = scl.checkErr();
+    Serial.print("err: ");
+    Serial.print(err,BIN);
+    Serial.print("\n");
+  */
 }
 
 
@@ -413,23 +415,24 @@ int runContinuously(int dir, bool motor) {
   bool limSwitch = digitalRead(limitPin);
   int degsSoFar = 0;
   while (limSwitch) {
-   
+
     if (motor == STEPPER) {
       setStepper(dir * 60);
       degsSoFar += 60;
     } else { //motor == LINEAR, i'm assuming
       setMotor(grabberMotorPins, dir * motorSpeed);
-      delay(200);
-      timer.run(); 
+      delay(100);
+      timer.run();
     }
     limSwitch = digitalRead(limitPin);
 
-    char cmd = Serial.read();
-    if (cmd == ' ') {
-      //STOP....
-      Serial.println("STOPPIN");
-      limSwitch = 0;
-    }
+    /*  char cmd = Serial.read();
+      if (cmd == ' ') {
+        //STOP....
+        Serial.println("STOPPIN");
+        limSwitch = 0;
+      }
+    */
   }
   if (motor == STEPPER) {
     delay(300);
@@ -481,11 +484,11 @@ void dispenseDrink(int drinkNo) {
   if (drinkNo < 1 || drinkNo > 3) return;
 
 
- // Serial.print("dispensing ");
- // Serial.println(drinkNo);
+  // Serial.print("dispensing ");
+  // Serial.println(drinkNo);
   double drinkDist = getRange(ultrasoundPins);
   Serial.print("drink distance: ");
-   Serial.println(drinkDist);
+  Serial.println(drinkDist);
   long timecheck0 = millis();
   long timecheck = timecheck0;
   //while the drink's height is below the threshold height,
@@ -495,20 +498,21 @@ void dispenseDrink(int drinkNo) {
   while ((drinkDist > maxDrinkDist)
          && (timecheck - timecheck0 < 5000)) {
     openValve(drinkNo);
-    timer.run(); 
+    timer.run();
     delay(50); //so we don't loop too tightly
     timecheck = millis();
     drinkDist = getRange(ultrasoundPins);
 
     Serial.print("drink distance: ");
     Serial.println(drinkDist);
-
-    char cmd = Serial.read();
-    if (cmd == ' ') {
-      //STOP....
-      Serial.println("STOPPIN");
-      drinkDist = maxDrinkDist;
-    }
+    /*
+        char cmd = Serial.read();
+        if (cmd == ' ') {
+          //STOP....
+          Serial.println("STOPPIN");
+          drinkDist = maxDrinkDist;
+        }
+    */
   }
 
   //stop dispensing
@@ -596,8 +600,8 @@ double getRange(int pins[]) {
 /*stockStatusUpdate(): update the stock status on the CAN network
 */
 void stockStatusUpdate() {
-//  Serial.println("updating stock status");
-  
+  //  Serial.println("updating stock status");
+
   //pack the message
   char stockMsg = 0x00;
   if (stock[0] > 0 ) {
@@ -612,35 +616,35 @@ void stockStatusUpdate() {
   if (stock[3] > 0 ) {
     stockMsg = stockMsg | 0x10; //0001 0000
   } //else it's already at zeros
- //Serial.println("abt to send the stock stat msg...!"); 
- sendRunning = true; 
+  //Serial.println("abt to send the stock stat msg...!");
+  sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, stockMsg);
-  sendRunning = false; 
- // Serial.println("updated stock status"); 
+  sendRunning = false;
+  // Serial.println("updated stock status");
 }
 
 
 /*prepStatusUpdate(): update the prep status on the CAN network
 */
 void prepStatusUpdate() {
-//  Serial.println("updating prep status"); 
+  //  Serial.println("updating prep status");
   char statMsg = 0; //this is WAITING
   if (state == PREPARING) {
     statMsg = 1;
   }
- 
-// Serial.println("abt to send the prep stat msg...!"); 
- sendRunning = true; 
+
+  // Serial.println("abt to send the prep stat msg...!");
+  sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, statMsg);
-sendRunning = false; 
-//Serial.println("updated prep status"); 
+  sendRunning = false;
+  //Serial.println("updated prep status");
 }
 
 
 /*prepHealthUpdate(): update the prep health on the CAN network
 */
 void prepHealthUpdate() {
- // Serial.println("updating prep health"); 
+  // Serial.println("updating prep health");
   char healthMsg = 0; //this is FINE
   switch (health) {
     case NOCUPS:
@@ -653,11 +657,11 @@ void prepHealthUpdate() {
       break;
   }
 
-  // Serial.println("abt to send the prep health msg...!"); 
-     sendRunning = true; 
+  // Serial.println("abt to send the prep health msg...!");
+  sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, healthMsg);
-  sendRunning = false; 
-//Serial.println("updated prep health");
+  sendRunning = false;
+  //Serial.println("updated prep health");
 }
 
 
@@ -683,20 +687,20 @@ void receivedMsgWrapper() {
   //put one of these in -every- sketch for an arduino with a CAN chip.
   //we have to do it this way because there are some issues with calling
   //a function of an object that may or may not exist.
- // Serial.println("try receive"); 
-// digitalWrite(49,HIGH);
-if (!sendRunning){ 
-  scl.receivedMsg();
-}
- /*int err = scl.checkErr(); 
- if (err == 0){
-   digitalWrite(49,LOW); 
- } else {
-   digitalWrite(49,HIGH); 
- }
- */ 
- //digitalWrite(49,LOW); 
- //sendRunning = false; 
+  // Serial.println("try receive");
+  // digitalWrite(49,HIGH);
+  if (!sendRunning) {
+    scl.receivedMsg();
+  }
+  /*int err = scl.checkErr();
+    if (err == 0){
+    digitalWrite(49,LOW);
+    } else {
+    digitalWrite(49,HIGH);
+    }
+  */
+  //digitalWrite(49,LOW);
+  //sendRunning = false;
 }
 
 
