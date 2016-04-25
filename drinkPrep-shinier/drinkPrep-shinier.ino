@@ -15,6 +15,7 @@
 //things to include
 #include <SquirtCanLib.h>
 #include <SimpleTimer.h>
+#include <avr/wdt.h>
 #include "DRV8825.h"
 
 enum States {
@@ -66,12 +67,37 @@ double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we sto
 int looptime;
 int lastLooptime;
 
+bool oops = true;
 
 //objects to construct
 SimpleTimer timer;
 SquirtCanLib scl;
 DRV8825 stepper(200, stackMotorPins[0], stackMotorPins[1]); //steps per rev, dir pin, step pin
 
+void watchdog_init()
+{
+    //Disable interrupts because setup is time sensitive
+    cli();
+
+    //Set the watchdog timer control register
+    wdt_reset();
+
+    //This line enables the watchdog timer to be configured. Do not change.
+    WDTCSR |= (1 << WDCE) | (1 << WDE);
+
+    //This next line must run within 4 clock cycles of the above line.
+    //See Section 12.4 of the ATMEGA2560 datasheet for additional details
+    WDTCSR = 
+            (1 << WDIE) //Call ISR on timeout
+            | (1 << WDP2) // w/ WDP1 sets timeout to 1 second
+            | (1 << WDP1);
+
+    oops = !oops;
+    digitalWrite(49, oops);
+
+    //Re-enable interrupts
+    sei();
+}
 
 void setup() {
   // set up stack stuff
@@ -85,6 +111,7 @@ void setup() {
   pinMode(grabberLimitSwitchPins[0], INPUT);
   pinMode(grabberLimitSwitchPins[1], INPUT);
 
+  //watchdog_init();
 
   //set up pneumatics
   pinMode(ultrasoundPins[0], OUTPUT);
@@ -121,7 +148,7 @@ void loop() {
 
   /*** things to always do ****/
 
-
+  //wdt_reset();
 
   //keep the system pressurized, always
   //if the thing is low pressure, turn on the compressor
@@ -159,8 +186,6 @@ void loop() {
   msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
   Serial.print("at row:");
   Serial.println((int) msg);
-  Serial.print("CAN errors: ");
-  Serial.println(scl.checkErr(), BIN);
 
   /*** things to sometimes do, depending on state ***/
 
