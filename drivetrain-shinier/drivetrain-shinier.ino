@@ -56,7 +56,7 @@ char atRow = 0; //if the row number exceeds 255 then we're in trouble/a huge pla
 States state = STATIONARY;
 Health health = FINE;
 char msg;
-
+char prevRtm = 0; 
 bool sendRunning = false; 
 
 //other constants to set
@@ -126,10 +126,11 @@ timer.run();
          char rtm = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE);
   Serial.print("ready to move? ");
   Serial.println((int) rtm); 
-  if (rtm) {
+  if (rtm && (prevRtm == 0)) {
     //if we just got an order, time to start preparing a drink!
     state = MOVE;
   }
+  prevRtm = rtm; 
         break;
       }
     case PREPTOMOVE:
@@ -152,6 +153,7 @@ timer.run();
         //Serial.print("frontrange: ");
         //Serial.println(frontRange); 
         while (elapsedTime < motorTime) {
+          timer.run(); //just in case
           frontRange = getRange(ultrasoundPins[0]);
         Serial.print("frontrange: ");
         Serial.println(frontRange); 
@@ -187,6 +189,7 @@ timer.run();
         moving = false; 
         atRow++; 
         state = STATIONARY; 
+        
         break;
       }
     case SIDECLOSE:

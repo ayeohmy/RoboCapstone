@@ -413,12 +413,14 @@ int runContinuously(int dir, bool motor) {
   bool limSwitch = digitalRead(limitPin);
   int degsSoFar = 0;
   while (limSwitch) {
+   
     if (motor == STEPPER) {
       setStepper(dir * 60);
       degsSoFar += 60;
     } else { //motor == LINEAR, i'm assuming
       setMotor(grabberMotorPins, dir * motorSpeed);
       delay(200);
+      timer.run(); 
     }
     limSwitch = digitalRead(limitPin);
 
@@ -493,7 +495,7 @@ void dispenseDrink(int drinkNo) {
   while ((drinkDist > maxDrinkDist)
          && (timecheck - timecheck0 < 5000)) {
     openValve(drinkNo);
-
+    timer.run(); 
     delay(50); //so we don't loop too tightly
     timecheck = millis();
     drinkDist = getRange(ultrasoundPins);
@@ -610,7 +612,7 @@ void stockStatusUpdate() {
   if (stock[3] > 0 ) {
     stockMsg = stockMsg | 0x10; //0001 0000
   } //else it's already at zeros
- Serial.println("abt to send the stock stat msg...!"); 
+ //Serial.println("abt to send the stock stat msg...!"); 
  sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_STOCK_STATUS, stockMsg);
   sendRunning = false; 
@@ -626,7 +628,8 @@ void prepStatusUpdate() {
   if (state == PREPARING) {
     statMsg = 1;
   }
- Serial.println("abt to send the prep stat msg...!"); 
+ 
+// Serial.println("abt to send the prep stat msg...!"); 
  sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, statMsg);
 sendRunning = false; 
@@ -650,7 +653,7 @@ void prepHealthUpdate() {
       break;
   }
 
-   Serial.println("abt to send the prep health msg...!"); 
+  // Serial.println("abt to send the prep health msg...!"); 
      sendRunning = true; 
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_HEALTH, healthMsg);
   sendRunning = false; 
