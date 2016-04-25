@@ -16,7 +16,7 @@
 #include <SquirtCanLib.h>
 #include <SimpleTimer.h>
 #include "DRV8825.h"
-#include "../libraries/watchdog.cpp"
+#include <watchdog.h>
 
 enum States {
   WAITING,
@@ -66,8 +66,6 @@ double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we sto
 
 int looptime;
 int lastLooptime;
-
-bool oops = true;
 
 //objects to construct
 SimpleTimer timer;

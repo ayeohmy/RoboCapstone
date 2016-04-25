@@ -1,4 +1,7 @@
 #include <avr/wdt.h>
+#include "watchdog.h"
+
+bool oops = true;
 
 void watchdog_init()
 {
