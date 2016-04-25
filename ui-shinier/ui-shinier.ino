@@ -119,7 +119,7 @@ void loop() {
 
   /*** things to always do ****/
 
-  if (drinksServed == 3 && state == REQUESTING) {
+  if (drinksServed == 30 && state == REQUESTING) {
     //change threshold to 6 eventually probably
     drinksServed = 0;
     state = DRIVING;
@@ -258,7 +258,8 @@ void loop() {
 */
 void panelDisplay(String line1, String line2, const int led1[], const int led2[], const int led3[]) {
   //displays the given two lines and three LED colors on the UI panel
-  // lcd.clear();
+   lcdL.clear();
+    lcdR.clear();
   //
   while (line1.length() < 16) {
     line1 += " ";
