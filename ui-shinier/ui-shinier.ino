@@ -66,6 +66,8 @@ const int CYAN[] = {0, 255, 255};
 const int MAGENTA[] = {255, 0, 255};
 const int YELLOW[] = {255, 255, 0};
 const int WHITE[] = {255, 255, 255};
+const int TEAL[] = {0, 100, 255};
+const int SEAF[] = {0,255,135};
 const int BLACK[] = {0, 0, 0};
 
 const String drinks[] = {"BEES   ", " BEES? ", " BEEEES"};
@@ -155,7 +157,7 @@ void loop() {
         line2 += drinks[2];
 
         //CHANGE THIS to actually actively update
-        panelDisplay(line1, line2, CYAN, MAGENTA, YELLOW);
+        panelDisplay(line1, line2, SEAF, CYAN, BLUE); //CYAN, MAGENTA, YELLOW);
 
      
         for (int i = 0; i < 3; i++) {
