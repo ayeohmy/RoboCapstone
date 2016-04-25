@@ -111,8 +111,6 @@ void loop() {
   Serial.print("at row ");
   Serial.println((int)atRow);
   /*** things to sometimes do, depending on state ***/
-  Serial.print("CAN errors: ");
-  Serial.println(scl.checkErr(), BIN);
   timer.run();
 
   switch (state) {
