@@ -89,7 +89,7 @@ SimpleTimer timer;
 void setup() {
   //set up LCD stuff
   lcdL.begin(16, 2); // it's a 16x2 lcd
-  //lcdR.begin(16,2);
+  lcdR.begin(16,2);
 
   //watchdog_init();
 
