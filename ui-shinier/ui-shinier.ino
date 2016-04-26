@@ -69,7 +69,7 @@ const int MAGENTA[] = {255, 0, 255};
 const int YELLOW[] = {255, 255, 0};
 const int WHITE[] = {255, 255, 255};
 const int TEAL[] = {0, 100, 255};
-const int SEAF[] = {0,255,135};
+const int SEAF[] = {0,255,125};
 const int BLACK[] = {0, 0, 0};
 
 const String drinks[] = {"BEES   ", " BEES? ", " BEEEES"};
@@ -91,7 +91,7 @@ void setup() {
   lcdL.begin(16, 2); // it's a 16x2 lcd
   //lcdR.begin(16,2);
 
-  watchdog_init();
+  //watchdog_init();
 
   //set up LEDs and buttons
   for (int i = 0; i < 3; i++) {
@@ -125,7 +125,7 @@ void loop() {
 
   /*** things to always do ****/
 
-  if (drinksServed == 30 && state == REQUESTING) {
+  if (drinksServed == 3 && state == REQUESTING) {
     //change threshold to 6 eventually probably
     drinksServed = 0;
     state = DRIVING;
@@ -134,7 +134,7 @@ void loop() {
 
   timer.run();
 
-  wdt_reset();
+  //wdt_reset();
 
   /*** things to sometimes do, depending on state ***/
 
@@ -163,7 +163,7 @@ void loop() {
         line2 += drinks[2];
 
         //CHANGE THIS to actually actively update
-        panelDisplay(line1, line2, SEAF, CYAN, BLUE); //CYAN, MAGENTA, YELLOW);
+        panelDisplay(line1, line2, BLUE, CYAN, BLUE); //CYAN, MAGENTA, YELLOW);
 
      
         for (int i = 0; i < 3; i++) {

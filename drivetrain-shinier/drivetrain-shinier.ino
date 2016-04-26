@@ -99,9 +99,9 @@ void setup() {
   watchdog_init();
 
   //set up timers, one for each message
-  timer.setInterval(25, movingUpdate);
+ // timer.setInterval(25, movingUpdate);
   timer.setInterval(50, atRowUpdate);
-  timer.setInterval(100, driveHealthUpdate);
+ // timer.setInterval(100, driveHealthUpdate);
 
 
   Serial.begin(9600);
@@ -164,7 +164,7 @@ void loop() {
         //Serial.print("frontrange: ");
         //Serial.println(frontRange);
         if (elapsedTime < motorTime) {
-          frontRange = getRange(ultrasoundPins[0]);
+          double frontRange = getRange(ultrasoundPins[0]);
           Serial.print("frontrange: ");
           Serial.println(frontRange);
           if (frontRange < 10) {
