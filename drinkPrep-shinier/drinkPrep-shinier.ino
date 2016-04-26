@@ -122,7 +122,7 @@ void setup() {
   //set up timers, one for each message
   timer.setInterval(50, stockStatusUpdate);
   timer.setInterval(50, prepStatusUpdate);
-  timer.setInterval(100, prepHealthUpdate);
+  //timer.setInterval(100, prepHealthUpdate);
 
 
   Serial.begin(9600);
