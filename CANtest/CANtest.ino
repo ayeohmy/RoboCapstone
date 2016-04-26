@@ -24,7 +24,7 @@ void loop() {
   got = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS);
   Serial.print("Status: ");
   Serial.println(got, HEX);
-  delay(3000);
+  delay(1000);
 }
 
 void receivedMsgWrapper() {
