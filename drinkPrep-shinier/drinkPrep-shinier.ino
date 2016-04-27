@@ -141,8 +141,8 @@ void loop() {
   //otherwise don't
   volatile int needPressure = digitalRead(pressureSensorPin);
   // Serial.println(needPressure);
-  if (needPressure == 1) {
-    //digitalWrite(compressorPin, HIGH);
+  if (needPressure == 1 && prepState != GETCUP_IN) {
+    digitalWrite(compressorPin, HIGH);
     //Serial.println("compressor ON");
   } else {
     digitalWrite(compressorPin, LOW);
@@ -201,7 +201,7 @@ void loop() {
           } else {
             prepState = GETCUP_OUT;
             degsSoFar = 0;
-            setStepper(-80);
+            setStepper(-220);
           }
           break;
         }
@@ -546,8 +546,8 @@ int runContinuously(int dir, bool motor) {
     */
   }
   if (motor == STEPPER) {
-    delay(300);
-    setStepper(-dir * 80); //back up a lil bit
+    delay(500);
+    setStepper(-dir * 220); //back up a lil bit
   }
 
   setMotor(grabberMotorPins, 0);

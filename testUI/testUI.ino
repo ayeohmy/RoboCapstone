@@ -30,10 +30,10 @@ int interruptPin = 21;
 char msg;
 
 #include <LiquidCrystal.h>
-LiquidCrystal lcd(14, 15, 10, 11, 12, 13); //these are the lcd pins.
+LiquidCrystal lcd(20, 7, 16,17,18,19); //these are the lcd pins.
 //(RS,enable, D4,D5,D6,D7)
 
-int buttonPins[] = {22, 23, 24};
+int buttonPins[] = {25,26,27};
 int buttonStates[] = {0, 0, 0};
 
 //all pins are the same for each LED color because

@@ -69,7 +69,7 @@ long elapsedTime = 0;
 
 //other constants to set
 int motorSpeed = 100; // range: 0 to 255
-int motorTime = 4000; //ms to drive
+int motorTime = 3000;//4000; //ms to drive
 
 //objects to construct
 SimpleTimer timer;
@@ -167,7 +167,7 @@ void loop() {
           double frontRange = getRange(ultrasoundPins[0]);
           Serial.print("frontrange: ");
           Serial.println(frontRange);
-          if (frontRange < 10) {
+          if (frontRange < 20) {
             stopMoving();
             Serial.println("stopped");
             currTime = millis();

@@ -261,12 +261,12 @@ void stopMoving() {
 
 }
 
-int runContinuously(char dir) {
+long runContinuously(char dir) {
   //runs the specified motor (motor) continuously
   //in the specified direction (dir) until we hit the
   //corresponding limit switch.
   //
-
+  
   //set up stopping sensor(s)
   int pins1[2];
   int pins2[2];
@@ -325,6 +325,7 @@ int runContinuously(char dir) {
   double  range1 = getRange(pins1);
   double range2 = getRange(pins2);
   int degsSoFar = 0;
+  long startTime = millis(); 
   while (range1 > 5 && range2 > 5) {
 
     switch (dir) {
@@ -376,7 +377,11 @@ int runContinuously(char dir) {
       range2 = 0;
     }
   }
-  stopMoving();
+    stopMoving();
+  long endTime = millis(); 
+  Serial.print("time moved: ");
+  Serial.println(endTime-startTime); 
+return endTime - startTime; 
 
 }
 
