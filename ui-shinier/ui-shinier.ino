@@ -229,7 +229,7 @@ void loop() {
         Serial.println((int) msg);
         Serial.print("time:");
         Serial.println(millis() - drinkTimestamp);
-        if (!msg && ((millis() - drinkTimestamp) > 5000)) {
+        if (msg == 2 && ((millis() - drinkTimestamp) > 5000)) {
           //then we're done
          
           drinkOrder = (char) 0;
@@ -243,7 +243,7 @@ void loop() {
 
         Serial.println(millis() - drinkTimestamp);
 
-        if (millis() - drinkTimestamp > 5000) {
+        if (msg == 0 && (millis() - drinkTimestamp > 1000)) {
           //then we're done
           state = REQUESTING;
            drinksServed++;
