@@ -26,6 +26,8 @@
 
 enum States {
   STATIONARY,
+  PREP_COMMAND_MOVE,
+  COMMAND_MOVE,
   PREPTOMOVE,
   MOVE,
   SIDECLOSE,
@@ -70,11 +72,14 @@ long elapsedTime = 0;
 //other constants to set
 int motorSpeed = 100; // range: 0 to 255
 int motorTime = 3000;//4000; //ms to drive
+int commandedDriveTime = 200; //ms of the commanded action
 
 //objects to construct
 SimpleTimer timer;
 SquirtCanLib scl;
 
+void turnAccordingly(double flRange, double frRange,
+                     double blRange, double brRange);
 
 void setup() {
   // set up motors
@@ -135,11 +140,59 @@ void loop() {
         char rtm = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE);
         Serial.print("ready to move? ");
         Serial.println((int) rtm);
-        if (rtm && (prevRtm == 0)) {
+        if (rtm == 1 && (prevRtm == 0)) {
           //if we just got an order, time to start preparing a drink!
           state = PREPTOMOVE;
         }
+        else if(rtm != 0 && prevRtm == 0) {
+          state = PREP_COMMAND_MOVE;
+        }
         prevRtm = rtm;
+        break;
+      }
+    case PREP_COMMAND_MOVE:
+      {
+        lastTime = millis();
+        currTime = lastTime;
+        elapsedTime = 0;
+        state = COMMAND_MOVE;
+        break;
+      }
+    case COMMAND_MOVE:
+      {
+        if (elapsedTime < commandedDriveTime) {
+          switch(prevRtm) {
+            case 2:
+              forward(motorSpeed);
+              break;
+            case 3:
+              back(motorSpeed);
+              break;
+            case 4:
+              turn(motorSpeed);
+              break;
+            case 5:
+              turn(-motorSpeed);
+              break;
+            case 6:
+              strafe(motorSpeed);
+              break;
+            case 7:
+              strafe(-motorSpeed);
+              break;
+            default:
+              stopMoving();
+              state = STATIONARY;
+              break;
+          }
+        }
+        else {
+          stopMoving();
+          state = STATIONARY;
+        }
+        currTime = millis();
+        elapsedTime += currTime - lastTime;
+        lastTime = currTime;
         break;
       }
     case PREPTOMOVE:
@@ -179,7 +232,7 @@ void loop() {
             double brRange = 50; //getRange(ultrasoundPins[4]);
             if ((flRange < 7 || frRange < 7)  ||
                 (blRange < 7 || brRange < 7)) {
-              turnAccordingly(flRange, frRange, blRange, brRange);
+                  turnAccordingly(flRange, frRange, blRange, brRange);
             } else {
               //everything's fine
               Serial.println("going forward...");
@@ -344,9 +397,6 @@ void turnAccordingly(double flRange, double frRange,
       turn(-motorSpeed);
     }
   }
-
-
-
 }
 /******* CAN NETWORK MESSAGE HELPERS *******/
 
