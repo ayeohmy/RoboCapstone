@@ -141,6 +141,9 @@ void loop() {
     state = DRIVING;
     readyToMove = true;
   }
+  if(currentRow > 2) {
+    state = COMMAND_DRIVE;
+  }
 
   if (newSeat) {
     seatTimestamp = millis();
@@ -167,6 +170,7 @@ void loop() {
         if(buttons[0] == 0 && buttons[1] == 0) {
           state = REQUESTING;
           newSeat = true;
+          break;
         }
         else if(buttons[0] == 0) { //Go forward
           readyToMove = 2;
