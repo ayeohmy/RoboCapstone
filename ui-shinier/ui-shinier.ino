@@ -20,6 +20,7 @@
 #define LEFT 1
 
 enum States {
+  COMMAND_DRIVE,
   REQUESTING,
   PREPARING,
   SERVING,
@@ -53,7 +54,7 @@ char drinkOrder = 0;
 char readyToMove = 0;
 char nowRunning = 0; //use this one later pal
 Health health = FINE;
-States state = REQUESTING;
+States state = COMMAND_DRIVE;
 int drinksServed = 0;
 long drinkTimestamp = 0;
 int currentRow = 0;
@@ -129,6 +130,8 @@ void loop() {
 
   /*** things to always do ****/
 
+  volatile unsigned long startCommandTime;
+
   if (drinksServed == 1) {
     currentSide = LEFT;
   }
@@ -150,6 +153,51 @@ void loop() {
   /*** things to sometimes do, depending on state ***/
 
   switch (state) {
+    case COMMAND_DRIVE:
+        //Get the button values
+        int buttons[6];
+        for(int i = 0; i < 3; i++) {
+          buttons[i] = digitalRead(buttonPinsL[i]);
+        }
+        for(int i = 0; i < 3; i++) {
+          buttons[3+i] = digitalRead(buttonPinsR[i]);
+        }
+
+        //Break into normal operation if forward and backards are pressed
+        if(buttons[0] == 0 && buttons[1] == 0) {
+          state = REQUESTING;
+          newSeat = true;
+        }
+        else if(buttons[0] == 0) { //Go forward
+          readyToMove = 2;
+        }
+        else if(buttons[1] == 0) { //Go backward
+          readyToMove = 3;
+        }
+        else if(buttons[2] == 0) { //Turn left
+          readyToMove = 4;
+        }
+        else if(buttons[3] == 0) { //Turn right
+          readyToMove = 5;
+        }
+        else if(buttons[4] == 0) { //Go left
+          readyToMove = 6;
+        }
+        else if(buttons[5] == 0) { //Go right
+          readyToMove = 7;
+        }
+        //Wait for CAN msg to transmit
+        startCommandTime = millis();
+        while(millis()-startCommandTime < 100) {
+          timer.run();
+        }
+        readyToMove = 0;
+        //Wait for CAN msg to transmit
+        startCommandTime = millis();
+        while(millis()-startCommandTime < 100) {
+          timer.run();
+        }
+        break;
     case REQUESTING: {
         Serial.print("requesting... drinks served: ");
         Serial.println(drinksServed);
@@ -404,9 +452,7 @@ void drinkOrderUpdate() {
 */
 void readyToMoveUpdate() {
   char rtmMsg = 0; //this is FINE
-  if (readyToMove == 1) {
-    rtmMsg = 1;
-  }
+  rtmMsg = readyToMove;
 
   sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE, rtmMsg);

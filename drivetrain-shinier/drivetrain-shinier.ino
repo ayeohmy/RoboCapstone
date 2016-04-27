@@ -39,6 +39,14 @@ enum Health {
   HEALTH_STUCK
 };
 
+enum CommandStates {
+  COMMAND_1,
+  COMMAND_2,
+  COMMAND_3,
+  ZERO_1,
+  ZERO_2,
+  ZERO_3
+} commandState;
 
 //pins to set
 //int ultrasoundPins[5][2] = {{23, 24}, {25, 26}, {27, 28}, {29, 30}, {31, 32}};
@@ -156,39 +164,54 @@ void loop() {
         currTime = lastTime;
         elapsedTime = 0;
         state = COMMAND_MOVE;
+        commandState = COMMAND_1;
         break;
       }
     case COMMAND_MOVE:
       {
-        if (elapsedTime < commandedDriveTime) {
-          switch(prevRtm) {
-            case 2:
-              forward(motorSpeed);
+        char rtm = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_READY_TO_MOVE);
+        if(elapsedTime > 50) {
+          switch(commandState) {
+            case COMMAND_1:
+              setCommanded(prevRtm);
+              if(rtm == prevRtm)
+                commandState = COMMAND_2;
+              else
+                commandState = ZERO_1;
               break;
-            case 3:
-              back(motorSpeed);
+            case COMMAND_2:
+              setCommanded(prevRtm);
+              if(rtm == prevRtm)
+                commandState = COMMAND_3;
+              else
+                commandState = ZERO_1;
               break;
-            case 4:
-              turn(motorSpeed);
-              break;
-            case 5:
-              turn(-motorSpeed);
-              break;
-            case 6:
-              strafe(motorSpeed);
-              break;
-            case 7:
-              strafe(-motorSpeed);
-              break;
-            default:
+            case COMMAND_3:
               stopMoving();
               state = STATIONARY;
               break;
+            case ZERO_1:
+              setCommanded(prevRtm);
+              if(rtm == prevRtm)
+                commandState = COMMAND_1;
+              else
+                commandState = ZERO_2;
+              break;
+            case ZERO_2:
+              setCommanded(prevRtm);
+              if(rtm == prevRtm)
+                commandState = COMMAND_1;
+              else
+                commandState = ZERO_3;
+              break;
+            case ZERO_3:
+              stopMoving();
+              state = STATIONARY;
+              break;
+            default:
+              break;
           }
-        }
-        else {
-          stopMoving();
-          state = STATIONARY;
+          elapsedTime = 0;
         }
         currTime = millis();
         elapsedTime += currTime - lastTime;
@@ -282,7 +305,32 @@ void loop() {
 
 /******** DRIVING HELPERS *********/
 
-
+void setCommanded(char rtm) {
+  switch(rtm) {
+    case 2:
+      forward(motorSpeed);
+      break;
+    case 3:
+      back(motorSpeed);
+      break;
+    case 4:
+      turn(motorSpeed);
+      break;
+    case 5:
+      turn(-motorSpeed);
+      break;
+    case 6:
+      strafe(motorSpeed);
+      break;
+    case 7:
+      strafe(-motorSpeed);
+      break;
+    default:
+      stopMoving();
+      state = STATIONARY;
+      break;
+  }
+}
 
 /*forward(SPD): drive forward with the specified speed (SPD).
    giving a negative value makes it go backwards.
