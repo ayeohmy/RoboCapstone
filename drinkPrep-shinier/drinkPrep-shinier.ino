@@ -273,6 +273,8 @@ void loop() {
               //update state; go to serving
               state = SERVING;
               Serial.println("drink done!");
+               timecheck0 = millis();
+                timecheck = timecheck0;
               break;
             }
           default: {
@@ -291,14 +293,13 @@ void loop() {
         double drinkDist = getRange(ultrasoundPins);
         Serial.print("cup there?: ");
         Serial.println(drinkDist);
-
-        if ((drinkDist > maxDrinkDist + 2) && drinkDist < 100) {
+        timecheck = millis(); 
+        if (((drinkDist > maxDrinkDist + 2) && drinkDist < 100)
+            && (timecheck - timecheck0 > 3000)){
           //then we're done!
           state = WAITING;
 
-        }
-
-
+        } 
 
         break;
       }
