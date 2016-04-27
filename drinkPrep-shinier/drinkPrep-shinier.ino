@@ -20,7 +20,8 @@
 
 enum States {
   WAITING,
-  PREPARING
+  PREPARING,
+  SERVING
 };
 
 enum PrepStates {
@@ -176,275 +177,274 @@ void loop() {
   /*** things to sometimes do, depending on state ***/
 
 
+  switch (state) {
+    case PREPARING: {
+        /*
+           PREPARING
+        */
+        Serial.println("prepping a drink!");
+        //parse le drink order
+        //FOR NOW: fake drink order to 2
+        //drinkOrder = 2;
+        int whichDrink = parseOrder(drinkOrder);
 
-  if (state == PREPARING) {
-    /*
-       PREPARING
-    */
-    Serial.println("prepping a drink!");
-    //parse le drink order
-    //FOR NOW: fake drink order to 2
-    //drinkOrder = 2;
-    int whichDrink = parseOrder(drinkOrder);
+        bool limSwitch = true;
+        switch (prepState) {
+          case START: {
+              prepState = GETCUP_UP;
+              break;
+            }
+          case GETCUP_UP: {
+              limSwitch = digitalRead(stackLimitSwitchPins[1]);
+              if (limSwitch) {
+                setStepper(60);
+                degsSoFar += 60;
+              } else {
+                prepState = GETCUP_OUT;
+                degsSoFar = 0;
+                setStepper(-220);
+              }
+              break;
+            }
+          case GETCUP_OUT: {
+              limSwitch = digitalRead(grabberLimitSwitchPins[1]);
+              if (limSwitch) {
+                setMotor(grabberMotorPins, motorSpeed);
+              }  else {
+                setMotor(grabberMotorPins, 0);
+                prepState = GETCUP_DOWN;
+              }
+              break;
+            }
+          case GETCUP_DOWN: {
+              limSwitch = digitalRead(stackLimitSwitchPins[0]);
+              if (degsSoFar < 3660) {
+                setStepper(-60);
+                degsSoFar += 60;
+              } else {
+                prepState = GETCUP_IN;
+                degsSoFar = 0;
+              }
+              break;
+            }
+          case GETCUP_IN: {
+              limSwitch = digitalRead(grabberLimitSwitchPins[0]);
+              if (limSwitch) {
+                setMotor(grabberMotorPins, -motorSpeed);
+              }  else {
+                setMotor(grabberMotorPins, 0);
+                prepState = DISPENSE;
+                timecheck0 = millis();
+                timecheck = timecheck0;
+              }
+              break;
+            }
+          case DISPENSE: {
+              double drinkDist = getRange(ultrasoundPins);
+              Serial.print("drink distance: ");
+              Serial.println(drinkDist);
+              if ((drinkDist > maxDrinkDist)
+                  && (timecheck - timecheck0 < 5000)) {
+                openValve(whichDrink);
+                //delay(50); //so we don't loop too tightly
+                timecheck = millis();
+              } else {
+                closeValves();
+                prepState = DONE;
+              }
 
-    bool limSwitch = true;
-    switch (prepState) {
-      case START: {
-          prepState = GETCUP_UP;
-          break;
-        }
-      case GETCUP_UP: {
-          limSwitch = digitalRead(stackLimitSwitchPins[1]);
-          if (limSwitch) {
-            setStepper(60);
-            degsSoFar += 60;
-          } else {
-            prepState = GETCUP_OUT;
-            degsSoFar = 0;
-            setStepper(-220);
-          }
-          break;
-        }
-      case GETCUP_OUT: {
-          limSwitch = digitalRead(grabberLimitSwitchPins[1]);
-          if (limSwitch) {
-            setMotor(grabberMotorPins, motorSpeed);
-          }  else {
-            setMotor(grabberMotorPins, 0);
-            prepState = GETCUP_DOWN;
-          }
-          break;
-        }
-      case GETCUP_DOWN: {
-          limSwitch = digitalRead(stackLimitSwitchPins[0]);
-          if (degsSoFar < 3660) {
-            setStepper(-60);
-            degsSoFar += 60;
-          } else {
-            prepState = GETCUP_IN;
-            degsSoFar = 0;
-          }
-          break;
-        }
-      case GETCUP_IN: {
-          limSwitch = digitalRead(grabberLimitSwitchPins[0]);
-          if (limSwitch) {
-            setMotor(grabberMotorPins, -motorSpeed);
-          }  else {
-            setMotor(grabberMotorPins, 0);
-            prepState = DISPENSE;
-            timecheck0 = millis();
-            timecheck = timecheck0;
-          }
-          break;
-        }
-      case DISPENSE: {
-          double drinkDist = getRange(ultrasoundPins);
-          Serial.print("drink distance: ");
-          Serial.println(drinkDist);
-          if ((drinkDist > maxDrinkDist)
-              && (timecheck - timecheck0 < 5000)) {
-            openValve(whichDrink);
-            //delay(50); //so we don't loop too tightly
-            timecheck = millis();
-          } else {
-            closeValves();
-            prepState = DONE;
-          }
+              break;
+            }
+          case DONE: {
+              degsSoFar = 0;
+              prepState = START;
+              Serial.println("drink dispensing done.");
+              //update stocks
+              stock[3] = stock[3] - 1; //less one cup
+              stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
 
-          break;
+              //update health
+              if (stock[3] <= 0) {
+                health = NOCUPS;
+              }
+              if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
+                health = NODRINKS;
+              }
+              //update state; go to serving
+              state = SERVING;
+              Serial.println("drink done!");
+              break;
+            }
+          default: {
+
+              break;
+            }
         }
-      case DONE: {
-          degsSoFar = 0;
-          prepState = START;
-          Serial.println("drink dispensing done.");
-          //update stocks
-          stock[3] = stock[3] - 1; //less one cup
-          stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
-
-          //update health
-          if (stock[3] <= 0) {
-            health = NOCUPS;
-          }
-          if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
-            health = NODRINKS;
-          }
-          //update state; go back to waiting
-          state = WAITING;
-          Serial.println("drink done!");
-          break;
-        }
-      default: {
-
-          break;
-        }
-    }
-
-
-    /*
-     * 
-    //dispense le drink based on order
-       getCup();
-
-        Serial.println("cup retrieval done.");
-        dispenseDrink(whichDrink);
-        Serial.println("drink dispensing done.");
-        //update stocks
-        stock[3] = stock[3] - 1; //less one cup
-        stock[whichDrink - 1] = stock[whichDrink - 1] - 1;
-
-        //update health
-        if (stock[3] <= 0) {
-          health = NOCUPS;
-        }
-        if (stock[0] <= 0  && (stock[1] <= 0 && stock[2] <= 0)) {
-          health = NODRINKS;
-        }
-        //update state; go back to waiting
-        state = WAITING;
-        Serial.println("drink done!");
 
 
-    */
-  } else { //state must be WAITING
-    /*
-       WAITING
-    */
-    //i guess we don't have anything to do here idly, since we
-    //have no stock sensing....
-
-    //so we'll do keyboard commands!
-    //digitalWrite(49,HIGH);
-    char keyIn = Serial.read();
-
-    // digitalWrite(49,LOW);
-    //  Serial.println(keyIn);
-
-    switch (keyIn) {
-      case '0': {
-          Serial.println("close all");
-          closeValves();
-          break;
-        }
-      case '1': {
-          Serial.println("open 1");
-          openValve(1);
-          break;
-        }
-      case '2': {
-          Serial.println("open 2");
-          openValve(2);
-          break;
-        }
-      case '3': {
-
-          Serial.println("open 3");
-          openValve(3);
-          break;
-        }
-      case '4': {
-          //dispense drink 1
-          Serial.println("dispense drink 1");
-          dispenseDrink(1);
-          break;
-        }
-      case '5': {
-          //dispense drink 2
-          Serial.println("dispense drink 2");
-          dispenseDrink(2);
-          break;
-        }
-      case '6': {
-          //dispense drink 3
-          Serial.println("dispense drink 3");
-          dispenseDrink(3);
-          break;
-        }
-      case 'w': {
-          Serial.println("stack up ");
-          setStepper(degsUp);
-          break;
-        }
-      case 'a': {
-          Serial.println("grabber in");
-          setMotor(grabberMotorPins, -motorSpeed);
-          delay(motorTime);
-          setMotor(grabberMotorPins, 0);
-          break;
-        }
-      case 's': {
-          Serial.println("stack down");
-          setStepper(-degsDown);
-
-          break;
-        }
-      case 'd': {
-
-          Serial.println("grabber out");
-          setMotor(grabberMotorPins, motorSpeed);
-          delay(motorTime);
-          setMotor(grabberMotorPins, 0);
-          break;
-        }
-
-      case 'i': {
-          Serial.println("stepping up");
-          //stepper run up continuously
-          int howfar = runContinuously(1, STEPPER);
-          break;
-        }
-      case 'k': {
-          Serial.println("stepping down");
-          //stepper run down continuously
-          runContinuously(-1, STEPPER);
-
-          break;
-        }
-      case 'j': {
-          //grabber run in continuously
-          Serial.println("grabbing in");
-          runContinuously(-1, LINEAR);
-
-          break;
-        }
-      case 'l': {
-          //grabber run out continuously
-          Serial.println("grabbing out");
-          runContinuously(1, LINEAR);
-          break;
-        }
-      case 'm': {
-          //check limit pins
-          Serial.println("limit pins:");
-          bool lim = digitalRead(grabberLimitSwitchPins[0]);
-          Serial.print("grabber in:");
-          Serial.println(lim);
-          lim = digitalRead(grabberLimitSwitchPins[1]);
-          Serial.print("grabber out:");
-          Serial.println(lim);
-          lim = digitalRead(stackLimitSwitchPins[0]);
-          Serial.print("stack bottom:");
-          Serial.println(lim);
-          lim = digitalRead(stackLimitSwitchPins[1]);
-          Serial.print("stack top:");
-          Serial.println(lim);
-          break;
-        }
-      case 'g': {
-          //get a cup
-          Serial.println("getting a cup...!" );
-          getCup();
-          break;
-        }
-      case 'p': {
-          Serial.println("switching state to PREPARING");
-          state = PREPARING;
-          break;
-        }
-      default:
         break;
+      }
+    case SERVING: {
+        /*
+           SERVING
+        */
+        double drinkDist = getRange(ultrasoundPins);
+        Serial.print("cup there?: ");
+        Serial.println(drinkDist);
 
-    }
+        if ((drinkDist > maxDrinkDist + 2) && drinkDist < 100) {
+          //then we're done!
+          state = WAITING;
+
+        }
+
+
+
+        break;
+      }
+    case WAITING: {
+        /*
+           WAITING
+        */
+        //i guess we don't have anything to do here idly, since we
+        //have no stock sensing....
+
+        //so we'll do keyboard commands!
+        //digitalWrite(49,HIGH);
+        char keyIn = Serial.read();
+
+        // digitalWrite(49,LOW);
+        //  Serial.println(keyIn);
+
+        switch (keyIn) {
+          case '0': {
+              Serial.println("close all");
+              closeValves();
+              break;
+            }
+          case '1': {
+              Serial.println("open 1");
+              openValve(1);
+              break;
+            }
+          case '2': {
+              Serial.println("open 2");
+              openValve(2);
+              break;
+            }
+          case '3': {
+
+              Serial.println("open 3");
+              openValve(3);
+              break;
+            }
+          case '4': {
+              //dispense drink 1
+              Serial.println("dispense drink 1");
+              dispenseDrink(1);
+              break;
+            }
+          case '5': {
+              //dispense drink 2
+              Serial.println("dispense drink 2");
+              dispenseDrink(2);
+              break;
+            }
+          case '6': {
+              //dispense drink 3
+              Serial.println("dispense drink 3");
+              dispenseDrink(3);
+              break;
+            }
+          case 'w': {
+              Serial.println("stack up ");
+              setStepper(degsUp);
+              break;
+            }
+          case 'a': {
+              Serial.println("grabber in");
+              setMotor(grabberMotorPins, -motorSpeed);
+              delay(motorTime);
+              setMotor(grabberMotorPins, 0);
+              break;
+            }
+          case 's': {
+              Serial.println("stack down");
+              setStepper(-degsDown);
+
+              break;
+            }
+          case 'd': {
+
+              Serial.println("grabber out");
+              setMotor(grabberMotorPins, motorSpeed);
+              delay(motorTime);
+              setMotor(grabberMotorPins, 0);
+              break;
+            }
+
+          case 'i': {
+              Serial.println("stepping up");
+              //stepper run up continuously
+              int howfar = runContinuously(1, STEPPER);
+              break;
+            }
+          case 'k': {
+              Serial.println("stepping down");
+              //stepper run down continuously
+              runContinuously(-1, STEPPER);
+
+              break;
+            }
+          case 'j': {
+              //grabber run in continuously
+              Serial.println("grabbing in");
+              runContinuously(-1, LINEAR);
+
+              break;
+            }
+          case 'l': {
+              //grabber run out continuously
+              Serial.println("grabbing out");
+              runContinuously(1, LINEAR);
+              break;
+            }
+          case 'm': {
+              //check limit pins
+              Serial.println("limit pins:");
+              bool lim = digitalRead(grabberLimitSwitchPins[0]);
+              Serial.print("grabber in:");
+              Serial.println(lim);
+              lim = digitalRead(grabberLimitSwitchPins[1]);
+              Serial.print("grabber out:");
+              Serial.println(lim);
+              lim = digitalRead(stackLimitSwitchPins[0]);
+              Serial.print("stack bottom:");
+              Serial.println(lim);
+              lim = digitalRead(stackLimitSwitchPins[1]);
+              Serial.print("stack top:");
+              Serial.println(lim);
+              break;
+            }
+          case 'g': {
+              //get a cup
+              Serial.println("getting a cup...!" );
+              getCup();
+              break;
+            }
+          case 'p': {
+              Serial.println("switching state to PREPARING");
+              state = PREPARING;
+              break;
+            }
+          default:
+            break;
+
+        }
+        break;
+      }
+    default:
+      break;
   }
   // Serial.println("loop done");
   /* lastLooptime = looptime;
@@ -743,7 +743,9 @@ void prepStatusUpdate() {
   if (state == PREPARING) {
     statMsg = 1;
   }
-
+  if (state == SERVING) {
+    statMsg = 2;
+  }
   // Serial.println("abt to send the prep stat msg...!");
   sendRunning = true;
   scl.sendMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS, statMsg);
