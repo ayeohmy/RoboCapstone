@@ -59,6 +59,7 @@ long drinkTimestamp = 0;
 int currentRow = 0;
 int currentSide = RIGHT;
 long seatTimestamp = 0;
+bool serveDone = false;
 bool newSeat = true;
 
 //other constants to set
@@ -244,7 +245,12 @@ void loop() {
         Serial.println(millis() - drinkTimestamp);
         msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS);
 
-        if (msg == 0 && (millis() - drinkTimestamp > 1000)) {
+        if (msg == 0  && serveDone == false){
+          serveDone = true;
+          drinkTimestamp = millis();
+        }
+        if(serveDone == true && (millis() - drinkTimestamp > 3000)) {
+        serveDone = false;
           //then we're done
           state = REQUESTING;
           drinksServed++;
