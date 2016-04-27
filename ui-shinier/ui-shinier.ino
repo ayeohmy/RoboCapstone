@@ -39,9 +39,9 @@ int led1PinsL[] = {28, 29, 30}; //R,G,B
 int led2PinsL[] = {31, 32, 33}; //R,G,B
 int led3PinsL[] = {34, 35, 36}; //R,G,B
 int buttonPinsR[] = {27, 26, 25};
-int led1PinsR[] = {37,38,39}; //R,G,B
-int led2PinsR[] = {40,41,42}; //R,G,B
-int led3PinsR[] = {43,44,45}; //R,G,B
+int led1PinsR[] = {37, 38, 39}; //R,G,B
+int led2PinsR[] = {40, 41, 42}; //R,G,B
+int led3PinsR[] = {43, 44, 45}; //R,G,B
 int slavePin = 53;
 int interruptPin = 21;
 
@@ -58,7 +58,7 @@ int drinksServed = 0;
 long drinkTimestamp = 0;
 int currentRow = 0;
 int currentSide = RIGHT;
-long seatTimestamp = 0; 
+long seatTimestamp = 0;
 bool newSeat = true;
 
 //other constants to set
@@ -70,7 +70,7 @@ const int MAGENTA[] = {255, 0, 255};
 const int YELLOW[] = {255, 255, 0};
 const int WHITE[] = {255, 255, 255};
 const int TEAL[] = {0, 100, 255};
-const int SEAF[] = {0,255,125};
+const int SEAF[] = {0, 255, 125};
 const int BLACK[] = {0, 0, 0};
 
 const String drinks[] = {"SQUIRT ", "  WATER", "  CIDER"};
@@ -90,7 +90,7 @@ SimpleTimer timer;
 void setup() {
   //set up LCD stuff
   lcdL.begin(16, 2); // it's a 16x2 lcd
-  lcdR.begin(16,2);
+  lcdR.begin(16, 2);
 
   watchdog_init();
 
@@ -117,8 +117,8 @@ void setup() {
   //timer.setInterval(50, runningUpdate);
   //timer.setInterval(100, uiHealthUpdate);
 
-  
-  
+
+
   Serial.begin(9600);
   Serial.println("ui setup done.");
 }
@@ -128,9 +128,9 @@ void loop() {
 
   /*** things to always do ****/
 
- if (drinksServed == 1){
-  currentSide = LEFT; 
- }
+  if (drinksServed == 1) {
+    currentSide = LEFT;
+  }
   if (drinksServed >= 3 && state == REQUESTING) {
     drinksServed = 0;
     currentSide = RIGHT;
@@ -138,9 +138,9 @@ void loop() {
     readyToMove = true;
   }
 
-  if (newSeat){
+  if (newSeat) {
     seatTimestamp = millis();
-    newSeat = false; 
+    newSeat = false;
   }
   timer.run();
 
@@ -165,11 +165,11 @@ void loop() {
 
 
         //construct the display message
-        String timeleft = String(1+(20000-(millis()-seatTimestamp))/1000);
-        
+        String timeleft = String(1 + (20000 - (millis() - seatTimestamp)) / 1000);
+
         //drink names
 
-        String line1 = getSeatString(); 
+        String line1 = getSeatString();
         line1 += "  "; //padding spaces
         String line2 = "";
         line1 += drinks[1];
@@ -180,15 +180,15 @@ void loop() {
         line2 += drinks[2];
 
         //CHANGE THIS to actually actively update
-        panelDisplay(line1, line2,CYAN,CYAN,CYAN); //CYAN, MAGENTA, YELLOW);
+        panelDisplay(line1, line2, CYAN, CYAN, CYAN); //CYAN, MAGENTA, YELLOW);
 
-     
+
         for (int i = 0; i < 3; i++) {
-           if(currentSide == LEFT){
-          buttonStates[i] = digitalRead(buttonPinsL[i]);
-           } else{
-              buttonStates[i] = digitalRead(buttonPinsR[i]);
-           }
+          if (currentSide == LEFT) {
+            buttonStates[i] = digitalRead(buttonPinsL[i]);
+          } else {
+            buttonStates[i] = digitalRead(buttonPinsR[i]);
+          }
         }
         if (!buttonStates[0]) {
           panelDisplay(line1, line2, CYAN, BLACK, BLACK);
@@ -214,9 +214,9 @@ void loop() {
 
         }
         //update the seat time
-        if (millis() - seatTimestamp > 20000){
-          drinksServed++; 
-          newSeat = true; 
+        if (millis() - seatTimestamp > 20000) {
+          drinksServed++;
+          newSeat = true;
         }
 
         break;
@@ -231,7 +231,7 @@ void loop() {
         Serial.println(millis() - drinkTimestamp);
         if (msg == 2 && ((millis() - drinkTimestamp) > 5000)) {
           //then we're done
-         
+
           drinkOrder = (char) 0;
           drinkTimestamp = millis();
           state = SERVING;
@@ -240,14 +240,15 @@ void loop() {
       }
     case SERVING: {
         panelDisplay("Please take  ", "your drink!", GREEN, GREEN, GREEN);
-
+        delay(50);
         Serial.println(millis() - drinkTimestamp);
+        msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_PREP_STATUS);
 
         if (msg == 0 && (millis() - drinkTimestamp > 1000)) {
           //then we're done
           state = REQUESTING;
-           drinksServed++;
-           newSeat = true;  
+          drinksServed++;
+          newSeat = true;
         }
         break;
       }
@@ -263,7 +264,7 @@ void loop() {
           readyToMove = false;
           currentRow = msg;
           state = REQUESTING;
-          newSeat = true; 
+          newSeat = true;
         }
         break;
       }
@@ -292,7 +293,7 @@ void loop() {
 void panelDisplay(String line1, String line2, const int led1[], const int led2[], const int led3[]) {
   //displays the given two lines and three LED colors on the UI panel
   // lcdL.clear();
-   // lcdR.clear();
+  // lcdR.clear();
   //
   while (line1.length() < 16) {
     line1 += " ";
@@ -342,39 +343,39 @@ void panelDisplay(String line1, String line2, const int led1[], const int led2[]
 }
 
 /*getSeatString(): get string describing current seat
- * 
- */
-String getSeatString(){
-  String seatstring = ""; 
-  seatstring += String(1+currentRow);
-  switch (drinksServed){
+
+*/
+String getSeatString() {
+  String seatstring = "";
+  seatstring += String(1 + currentRow);
+  switch (drinksServed) {
     case 0:
-    seatstring += "A";
-    break;
-      case 1:
-      
-    seatstring += "B";
-    break;
+      seatstring += "A";
+      break;
+    case 1:
+
+      seatstring += "B";
+      break;
     case 2:
-    
-    seatstring += "C";
-    break;
-      case 3:
-      
-    seatstring += "D";
-    break;
-      case 4:
-      
-    seatstring += "E";
-    break;
-      case 5:
-      
-    seatstring += "F";
-    break;
-    default: 
-    break; 
+
+      seatstring += "C";
+      break;
+    case 3:
+
+      seatstring += "D";
+      break;
+    case 4:
+
+      seatstring += "E";
+      break;
+    case 5:
+
+      seatstring += "F";
+      break;
+    default:
+      break;
   }
-  return seatstring; 
+  return seatstring;
 }
 
 /******* STATUS MONITOR HELPERS ******/
