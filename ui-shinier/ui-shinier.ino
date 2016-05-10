@@ -18,7 +18,7 @@
 
 #define RIGHT 0
 #define LEFT 1
-
+#define WAIT_SEAT_TIME 20000 //20 seconds
 enum States {
   COMMAND_DRIVE,
   REQUESTING,
@@ -157,6 +157,10 @@ void loop() {
 
   switch (state) {
     case COMMAND_DRIVE:
+        //Reset drinks served and current row
+        drinksServed = 0;
+        currentRow = 0;
+        
         //Get the button values
         int buttons[6];
         for(int i = 0; i < 3; i++) {
@@ -218,7 +222,7 @@ void loop() {
 
 
         //construct the display message
-        String timeleft = String(1 + (20000 - (millis() - seatTimestamp)) / 1000);
+        String timeleft = String(1 + (WAIT_SEAT_TIME - (millis() - seatTimestamp)) / 1000);
 
         //drink names
 
@@ -267,7 +271,7 @@ void loop() {
 
         }
         //update the seat time
-        if (millis() - seatTimestamp > 20000) {
+        if (millis() - seatTimestamp > WAIT_SEAT_TIME) {
           drinksServed++;
           newSeat = true;
         }
@@ -360,38 +364,46 @@ void panelDisplay(String line1, String line2, const int led1[], const int led2[]
     line2 += " ";
   }
   if (currentSide == LEFT) {
+    cli();
     lcdL.setCursor(0, 0);
     lcdL.print(line1);
     lcdL.setCursor(0, 1);
     lcdL.print(line2);
+    sei();
     for (int i = 0; i < 3; i++) {
       analogWrite(led1PinsL[i], led1[i]);
       analogWrite(led2PinsL[i], led2[i]);
       analogWrite(led3PinsL[i], led3[i]);
     }
+    cli();
     lcdR.setCursor(0, 0);
     lcdR.print("Please wait...  ");
     lcdR.setCursor(0, 1);
     lcdR.print("                ");
+    sei();
     for (int i = 0; i < 3; i++) {
       analogWrite(led1PinsR[i], 0);
       analogWrite(led2PinsR[i], 0);
       analogWrite(led3PinsR[i], 0);
     }
   } else {
+    cli();
     lcdR.setCursor(0, 0);
     lcdR.print(line1);
     lcdR.setCursor(0, 1);
     lcdR.print(line2);
+    sei();
     for (int i = 0; i < 3; i++) {
       analogWrite(led1PinsR[i], led1[i]);
       analogWrite(led2PinsR[i], led2[i]);
       analogWrite(led3PinsR[i], led3[i]);
     }
+    cli();
     lcdL.setCursor(0, 0);
     lcdL.print("Please wait...  ");
     lcdL.setCursor(0, 1);
     lcdL.print("                ");
+    sei();
     for (int i = 0; i < 3; i++) {
       analogWrite(led1PinsL[i], 0);
       analogWrite(led2PinsL[i], 0);
