@@ -311,6 +311,8 @@ void setCommanded(char rtm) {
       forward(motorSpeed);
       break;
     case 3:
+      //if we drive backwards, assume we're doing a row reset
+      atRow = 0; 
       back(motorSpeed);
       break;
     case 4:

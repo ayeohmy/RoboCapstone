@@ -18,6 +18,8 @@
 #include "DRV8825.h"
 #include <watchdog.h>
 
+#define FILTER_ORDER 10
+
 enum States {
   WAITING,
   PREPARING,
@@ -30,6 +32,7 @@ enum PrepStates {
   GETCUP_OUT,
   GETCUP_DOWN,
   GETCUP_IN,
+  REPRESSURIZE,
   DISPENSE,
   DONE
 };
@@ -69,6 +72,8 @@ bool sendRunning = false;
 int degsSoFar = 0;
 long timecheck0 = 0;
 long timecheck = 0;
+double ult_avg = 0; 
+double ultraValues[FILTER_ORDER];
 
 //other constants to set
 int degsUp = 180;
@@ -76,7 +81,7 @@ int degsDown = 180;
 int rpms = 400;
 int motorTime = 500; //ms
 int motorSpeed = 250; //0-255
-double maxDrinkDist = 11.0; //let's say when we're 11.0cm from the drink, we stop
+double maxDrinkDist = 12.0; //let's say when we're 11.0cm from the drink, we stop
 
 int looptime;
 int lastLooptime;
@@ -135,6 +140,8 @@ void loop() {
 
   /*** things to always do ****/
 
+  updateUltrasound();
+
   wdt_reset();
 
   //keep the system pressurized, always
@@ -168,11 +175,15 @@ void loop() {
   }
 
   prevDrinkOrder = drinkOrder;
-  Serial.print("state:");
+  /*Serial.print("state:");
   Serial.println(state);
   msg = scl.getMsg(SquirtCanLib::CAN_MSG_HDR_AT_ROW);
   Serial.print("at row:");
   Serial.println((int) msg);
+*/ 
+
+Serial.print("distance: "); 
+Serial.println(ult_avg); 
 
   /*** things to sometimes do, depending on state ***/
 
@@ -233,18 +244,27 @@ void loop() {
                 setMotor(grabberMotorPins, -motorSpeed);
               }  else {
                 setMotor(grabberMotorPins, 0);
-                prepState = DISPENSE;
-                timecheck0 = millis();
-                timecheck = timecheck0;
+                prepState = REPRESSURIZE; 
               }
               break;
             }
+            case REPRESSURIZE:{
+               if(!needPressure){
+                prepState = DISPENSE;
+                timecheck0 = millis();
+                timecheck = timecheck0;
+                }
+              break;
+            }
           case DISPENSE: {
-              double drinkDist = getRange(ultrasoundPins);
+              double drinkDist = ult_avg;//getRange(ultrasoundPins);
               Serial.print("drink distance: ");
               Serial.println(drinkDist);
+
+
+              
               if ((drinkDist > maxDrinkDist)
-                  && (timecheck - timecheck0 < 5000)) {
+                  && (timecheck - timecheck0 < 15000)) {
                 openValve(whichDrink);
                 //delay(50); //so we don't loop too tightly
                 timecheck = millis();
@@ -252,6 +272,7 @@ void loop() {
                 closeValves();
                 prepState = DONE;
               }
+              
 
               break;
             }
@@ -290,11 +311,11 @@ void loop() {
         /*
            SERVING
         */
-        double drinkDist = getRange(ultrasoundPins);
+        double drinkDist = ult_avg;//getRange(ultrasoundPins);
         Serial.print("cup there?: ");
         Serial.println(drinkDist);
         timecheck = millis(); 
-        if (((drinkDist > maxDrinkDist + 2) && drinkDist < 100)
+        if (((drinkDist > maxDrinkDist + 2) && drinkDist < 50)
             && (timecheck - timecheck0 > 3000)){
           //then we're done!
           state = WAITING;
@@ -598,7 +619,7 @@ void dispenseDrink(int drinkNo) {
 
   // Serial.print("dispensing ");
   // Serial.println(drinkNo);
-  double drinkDist = getRange(ultrasoundPins);
+  double drinkDist = ult_avg;//getRange(ultrasoundPins);
   Serial.print("drink distance: ");
   Serial.println(drinkDist);
   long timecheck0 = millis();
@@ -613,7 +634,7 @@ void dispenseDrink(int drinkNo) {
     timer.run();
     delay(50); //so we don't loop too tightly
     timecheck = millis();
-    drinkDist = getRange(ultrasoundPins);
+    drinkDist = ult_avg;//getRange(ultrasoundPins);
 
     Serial.print("drink distance: ");
     Serial.println(drinkDist);
@@ -817,5 +838,16 @@ void receivedMsgWrapper() {
   //sendRunning = false;
 }
 
-
+//updateUltrasound: update the ultrasound average 
+void updateUltrasound(){
+  for(int i = 0; i < FILTER_ORDER-1; i++) {
+    ultraValues[i] = ultraValues[i+1];
+  }
+  ultraValues[FILTER_ORDER-1] = getRange(ultrasoundPins);
+  double total = 0;
+  for(int i = 0; i < FILTER_ORDER; i++) {
+    total += ultraValues[i];
+  }
+  ult_avg = total/FILTER_ORDER;
+}
 
