@@ -213,7 +213,7 @@ Serial.println(ult_avg);
               } else {
                 prepState = GETCUP_OUT;
                 degsSoFar = 0;
-                setStepper(-220);
+                setStepper(-320);
               }
               break;
             }
